@@ -1,6 +1,7 @@
 """Streamlit UI code"""
 # pylint: disable=line-too-long, invalid-name
 import streamlit as st
+# To avoid import errors add current dir to sys path for python
 # import sys
 # import os
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -26,7 +27,7 @@ if "clear_uploader" not in st.session_state:
     st.session_state.clear_uploader = False
 
 def new_session():
-    """Initialize all session variables"""
+    """Reinitialize all session variables"""
     st.session_state['messages'] = []
     st.session_state['model_key'] = MODELS[0]
     st.session_state.uploaded_files = []

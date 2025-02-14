@@ -5,7 +5,7 @@ import streamlit as st
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from ml_config import LLM_CONFIGS, MODELS
-from config import GEMINI_API_KEY
+from config import GEMINI_API_KEY # Import gemini api key
 from utils.utility import convert_to_multimodal_message
 
 logger = logging.getLogger(__name__)
