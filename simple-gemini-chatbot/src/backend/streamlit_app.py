@@ -1,10 +1,6 @@
 """Streamlit UI code"""
 # pylint: disable=line-too-long, invalid-name
 import streamlit as st
-# To avoid import errors add current dir to sys path for python
-# import sys
-# import os
-# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bot.chat import get_stream_response, on_model_change, initialize_model
 from ml_config import MODELS, ALLOWED_FILE_TYPES
 from utils.utility import process_chat_history, convert_to_multimodal_message
