@@ -1,0 +1,4 @@
+mesop==1.0.0
+flask==3.1.0
+langchain-google-genai==2.0.9
+pylint==3.3.4

@@ -3,12 +3,48 @@ import mesop as me
 from mesop_chat import chat, ChatMessage
 
 CHAT_CONTAINER_STYLE = me.Style(
-    background=me.theme_var("surface"),
-    height="100%",
-    font_family="Inter",
-    display="flex",
-    flex_direction="column",
+   background=me.theme_var("surface"),
+   height="100%",
+   font_family="Inter",
+   display="flex",
+   flex_direction="column",
 )
+
+MODEL_SELECT_STYLE = me.Style(
+   width="95%",
+   height=80,
+   font_size=14,
+   border_radius=20,
+   margin=me.Margin(top=40),
+   color=me.theme_var("surface")
+)
+
+model_options = [
+    me.SelectOption(label="Gemini 2.0 Flash", value="gemini-2.0-flash"),
+    me.SelectOption(label="Gemini 1.5 Pro", value="gemini-1.5-pro"),
+    me.SelectOption(label="Gemini 1.5 Flash", value="gemini-1.5-flash"),
+]
+
+@me.stateclass
+class State:
+  default_model: str = model_options[0].value
+  initial_max_tokens_value: str = "1024"
+  initial_tokens_slider_value: float = 1024
+  tokens_slider_value: float = 1024
+
+def on_selection_change_2(e: me.SelectSelectionChangeEvent):
+  s = me.state(State)
+  s.default_model = e.value
+
+def on_value_change(event: me.SliderValueChangeEvent):
+  state = me.state(State)
+  state.tokens_slider_value = event.value
+  state.initial_max_tokens_value = str(state.tokens_slider_value)
+
+def on_input(event: me.InputEvent):
+  state = me.state(State)
+  state.initial_tokens_slider_value = float(event.value)
+  state.tokens_slider_value = state.initial_tokens_slider_value
 
 @me.page(path="/",
          title="Simple RAG App",
@@ -18,32 +54,12 @@ CHAT_CONTAINER_STYLE = me.Style(
 def app_screen():
     with me.box(style=me.Style(
         display="grid",
-        grid_template_columns="250px 1fr 250px",
+        grid_template_columns="0.25fr 1fr 0.25fr",
         height="100%"
     )):
         # Left Sidebar
-        with me.box(style=me.Style(
-            background=me.theme_var("surface-container-low"),
-            overflow_y="auto"
-        )):
-            with me.content_button(type="raised", style=me.Style(
-                width=200,
-                display="flex",
-                flex_direction="row",
-                align_items="center",
-                justify_content= "space-between",
-                border_radius="10px",
-                margin=me.Margin.symmetric(vertical=20, horizontal="auto")
-            )):
-                with me.box(style=me.Style(
-                    display="flex",
-                    flex_direction="row",
-                    align_items="center",
-                    justify_content= "space-between"
-                )):
-                    me.icon(icon="add")
-                    me.text(text="New Conversation")
-        
+        left_sidebar()
+
         # Chat Container
         with me.box(style=me.Style(
             background=me.theme_var("surface"),
@@ -54,66 +70,77 @@ def app_screen():
             chat_container()
         
         # Settings bar
-        with me.box(style=me.Style(
-            background=me.theme_var("surface-container-low"),
-            overflow_y="auto",
-        )):
-            me.text(text="Settings",
-                    style=me.Style(
-                    font_size=16,
-                    color="#3D3929",
-                    letter_spacing="0.3px",
-                    padding=me.Padding.all(20)
-                ))
-            model_options = [
-                me.SelectOption(label="Gemini 1.5 Pro", value="gemini-1.5-pro"),
-                me.SelectOption(label="Gemini 1.5 Flash", value="gemini-1.5-flash"),
-                me.SelectOption(label="Gemini 2.0 Flash", value="gemini-2.0-flash"),
-            ]
-            me.select(options=model_options,
-                      label="Model",
-                      style=me.Style(
-                          width=210,
-                          height=80,
-                          font_size=14,
-                          border_radius=20,
-                          color="#ffffff"))
-            me.slider(value=1024,
-                      min=200,
-                      max=8096,
-                      discrete=True,
-                      style=me.Style(
-                          width=200,
-                          height=50,
-                          font_size=14
-                          ))
+        settings_sidebar()
 
+def left_sidebar():
+   with me.box(style=me.Style(
+        background=me.theme_var("surface-container-low"),
+        overflow_y="auto"
+    )):
+        with me.content_button(type="raised", style=me.Style(
+            width=200,
+            display="flex",
+            flex_direction="row",
+            align_items="center",
+            justify_content= "space-between",
+            border_radius="10px",
+            margin=me.Margin.symmetric(vertical=20, horizontal="auto"),
+            background=me.theme_var("secondary-container")
+        )):
+            with me.box(style=me.Style(
+                display="flex",
+                flex_direction="row",
+                align_items="center",
+                justify_content= "space-between"
+            )):
+                me.icon(icon="add")
+                me.text(text="New Conversation")
 
 def chat_container():
     with me.box(style=CHAT_CONTAINER_STYLE):
-        # chat_header()
-        # mel.chat(transform, title="Simple RAG App", bot_user="Assistant")
         chat(transform, title="Good Morning, Ruths", bot_user="Assistant")
-        # with me.box(style=me.Style(
-        #     display="flex",
-        #     flex_direction="row"
-        # )):
-        #     me.icon(icon="face")
-        #     me.text("This is a big chunk of text. <br> dsvbauyshsvbfahvljhvfbKJAH")
 
-def chat_header():
-    with me.box(style=me.Style(
-        padding=me.Padding.all(16),
-        display="flex",
-        align_items="center",
-        justify_content="center",
-    )):
-        me.text(text="Good Morning, Ruths",
-                style=me.Style(
-                    font_size=36,
-                    color="#3D3929",
-                    letter_spacing="0.3px",
+def settings_sidebar():
+   state = me.state(State)
+   with me.box(style=me.Style(background=me.theme_var("surface-container-low"), overflow_y="auto")):
+    me.text(text="Settings",
+            style=me.Style(
+               font_size=18,
+               letter_spacing="0.3px",
+               padding=me.Padding.all(20)
+            ))
+    
+    me.select(options=model_options,
+                label="Model",
+                multiple=False,
+                appearance="outline",
+                value=state.default_model,
+                style=MODEL_SELECT_STYLE)
+    
+    with me.box(style=me.Style(display="flex", flex_direction="column", margin=me.Margin.all(5))):
+        me.input(
+            label="Max tokens",
+            appearance="outline",
+            value=state.initial_max_tokens_value,
+            on_input=on_input,
+            )
+        me.slider(on_value_change=on_value_change,
+                  value=state.initial_tokens_slider_value,
+                  min=0,
+                  max=8192,
+                  step=256,
+                  style=me.Style(
+                    width="94%",
+                    height=50,
+                    font_size=14,
+                    margin=me.Margin(right=10)
                 ))
+        with me.box(
+            style=me.Style(
+            display="flex", flex_direction="row",justify_content= "space-between",margin=me.Margin(right=10)
+        )):
+            me.text("0")
+            me.text("8192")
 
 def transform(input: str, history: list[ChatMessage]):
   return f"Echo: {input}"

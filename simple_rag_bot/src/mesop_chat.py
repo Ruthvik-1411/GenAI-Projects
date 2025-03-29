@@ -5,6 +5,7 @@ from typing import Callable, Generator, Literal
 import mesop as me
 
 Role = Literal["user", "assistant"]
+ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf","video/mp4"]
 
 _ROLE_USER = "user"
 _ROLE_ASSISTANT = "assistant"
@@ -12,16 +13,16 @@ _ROLE_ASSISTANT = "assistant"
 _BOT_USER_DEFAULT = "assistant"
 
 _COLOR_BACKGROUND = me.theme_var("background")
-_COLOR_CHAT_BUBBLE_YOU = me.theme_var("surface-container-low")
+_COLOR_CHAT_BUBBLE_YOU = me.theme_var("surface")
 # https://m3.material.io/styles/color/roles
-_COLOR_CHAT_BUBBLE_BOT = me.theme_var("surface")
+_COLOR_CHAT_BUBBLE_BOT = me.theme_var("surface-container-low")
 
-_DEFAULT_PADDING = me.Padding.all(20)
+_DEFAULT_PADDING = me.Padding.all(5)
 _DEFAULT_BORDER_SIDE = me.BorderSide(
   width="1px", style="solid", color=me.theme_var("secondary-fixed")
 )
 
-_LABEL_BUTTON = "send"
+_LABEL_BUTTON = "attach_file"
 _LABEL_BUTTON_IN_PROGRESS = "pending"
 _LABEL_INPUT = "Type your message here."
 
@@ -43,26 +44,32 @@ _STYLE_CHAT_BOX = me.Style(
   flex_grow=1,
   overflow_y="scroll",
   padding=_DEFAULT_PADDING,
-  margin=me.Margin(bottom=20),
+  margin=me.Margin(bottom=10),
   border_radius="10px",
-#   border=me.Border(
-#     left=_DEFAULT_BORDER_SIDE,
-#     right=_DEFAULT_BORDER_SIDE,
-#     top=_DEFAULT_BORDER_SIDE,
-#     bottom=_DEFAULT_BORDER_SIDE,
-#   ),
 )
-_STYLE_CHAT_INPUT = me.Style(width="100%")
+_STYLE_CHAT_INPUT = me.Style(width="100%",border=me.Border.all(me.BorderSide(style="none")))
 _STYLE_CHAT_INPUT_BOX = me.Style(
-  padding=me.Padding(top=30), display="flex", flex_direction="row",
+  padding=me.Padding(top=-1), display="flex", flex_direction="row"
 )
-_STYLE_CHAT_BUTTON = me.Style(margin=me.Margin(top=8, left=8))
+_STYLE_UPLOAD_BUTTON = me.Style(margin=me.Margin(top=8, left=8),font_weight="bold",background=me.theme_var("secondary-container"))
 _STYLE_CHAT_BUBBLE_NAME = me.Style(
   font_weight="bold",
   font_size="13px",
-  padding=me.Padding(left=15, right=15, bottom=5),
+  padding=me.Padding(left=15, right=15, bottom=5)
 )
 _STYLE_CHAT_BUBBLE_PLAINTEXT = me.Style(margin=me.Margin.symmetric(vertical=15))
+_STYLE_CHAT_MESSAGE_BOX = me.Style(
+  display="flex",
+  flex_direction="row",
+  align_items="center"
+)
+_COLOR_CHAT_MESSAGE_ICON_BACKGROUND_YOU = "#ff6c6c"
+_COLOR_CHAT_MESSAGE_ICON_BACKGROUND_BOT = "#ffbd45"
+_STYLE_CHAT_MESSAGE_ICON = me.Style(
+  height="25px",
+  width="25px",
+  margin=me.Margin(top=5)
+)
 
 
 def _make_style_chat_bubble_wrapper(role: Role) -> me.Style:
@@ -71,7 +78,6 @@ def _make_style_chat_bubble_wrapper(role: Role) -> me.Style:
   Args:
     role: Chat bubble alignment depends on the role
   """
-#   align_items = "end" if role == _ROLE_USER else "start"
   align_items = "start"
   return me.Style(
     display="flex",
@@ -79,6 +85,25 @@ def _make_style_chat_bubble_wrapper(role: Role) -> me.Style:
     align_items=align_items,
   )
 
+def _make_chat_bubble_icon_style(role: Role) -> me.Style:
+  """Generates styles for chat bubble icon
+
+  Args:
+    role: Chat bubble background color depends on the role
+  """
+  background = (
+   _COLOR_CHAT_MESSAGE_ICON_BACKGROUND_YOU if role == _ROLE_USER else _COLOR_CHAT_MESSAGE_ICON_BACKGROUND_BOT
+  )
+  return me.Style(
+    background=background,
+    border_radius="10px",
+    margin=me.Margin(right=10),
+    height="35px",
+    width="35px",
+    display="flex",
+    justify_content="center",
+    align_items="center"
+  )
 
 def _make_chat_bubble_style(role: Role) -> me.Style:
   """Generates styles for chat bubble.
@@ -97,12 +122,6 @@ def _make_chat_bubble_style(role: Role) -> me.Style:
     border_radius="15px",
     padding=me.Padding(right=15, left=15, bottom=3),
     margin=me.Margin(bottom=10),
-    # border=me.Border(
-    #   left=_DEFAULT_BORDER_SIDE,
-    #   right=_DEFAULT_BORDER_SIDE,
-    #   top=_DEFAULT_BORDER_SIDE,
-    #   bottom=_DEFAULT_BORDER_SIDE,
-    # ),
   )
 
 
@@ -119,12 +138,31 @@ class State:
   input: str
   output: list[ChatMessage]
   in_progress: bool = False
+  file: me.UploadedFile
 
+def handle_upload(event: me.UploadEvent):
+  state = me.state(State)
+  state.file = event.file
 
 def on_blur(e: me.InputBlurEvent):
   state = me.state(State)
   state.input = e.value
 
+def on_newline(e: me.TextareaShortcutEvent):
+  state = me.state(State)
+  state.input = e.value + "\n"
+
+
+def on_submit(e: me.TextareaShortcutEvent):
+  state = me.state(State)
+  state.input = e.value
+  state.output = e.value
+
+
+def on_clear(e: me.TextareaShortcutEvent):
+  state = me.state(State)
+  state.input = ""
+  state.output = ""
 
 def chat(
   transform: Callable[
@@ -196,71 +234,33 @@ def chat(
       me.set_theme_mode("light")
 
   with me.box(style=_STYLE_APP_CONTAINER):
-    with me.content_button(
-      type="icon",
-      style=me.Style(position="absolute", right=4, top=8),
-      on_click=toggle_theme,
-    ):
-      me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
 
     if title:
-      me.text(title, type="headline-3", style=_STYLE_TITLE)
+      with me.box(
+            style=me.Style(
+            display="flex", flex_direction="row",justify_content= "center",margin=me.Margin(right=10)
+        )):
+        me.text(title, type="headline-3", style=_STYLE_TITLE)
+        with me.content_button(
+          type="icon",
+          style=me.Style(margin=me.Margin(top=6)),
+          on_click=toggle_theme,
+        ):
+          me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
 
     with me.box(style=_STYLE_CHAT_BOX):
       for msg in state.output:
         with me.box(style=_make_style_chat_bubble_wrapper(msg.role)):
-        #   if msg.role == _ROLE_ASSISTANT:
-            # me.text(bot_user, style=_STYLE_CHAT_BUBBLE_NAME)
           with me.box(style=_make_chat_bubble_style(msg.role)):
             if msg.role == _ROLE_USER:
-              with me.box(style=me.Style(
-                    display="flex",
-                    flex_direction="row",
-                    align_items="center"
-                )):
-                    # me.icon("face",style=me.Style(
-                    #   background="#ff6c6c",
-                    #   border_radius="10px",
-                    #   height="35px",
-                    #   width="35px",
-                    # ))
-                    with me.box(style=me.Style(
-                        background="#ff6c6c",
-                        border_radius="10px",
-                        margin=me.Margin(right=10),
-                        height="35px",
-                        width="35px",
-                        display="flex",            # Make the icon container a flexbox
-                        justify_content="center",  # Horizontally center the icon
-                        align_items="center"       # Vertically center the icon
-                    )):
-                        me.icon("face", style=me.Style(
-                            height="25px",  # Adjust icon size if necessary
-                            width="25px",
-                            margin=me.Margin(top=5)
-                        ))
+              with me.box(style=_STYLE_CHAT_MESSAGE_BOX):
+                    with me.box(style=_make_chat_bubble_icon_style(msg.role)):
+                        me.icon("face", style=_STYLE_CHAT_MESSAGE_ICON)
                     me.markdown(msg.content)
             else:
-              with me.box(style=me.Style(
-                    display="flex",
-                    flex_direction="row",
-                    align_items="center"
-                )):
-                    with me.box(style=me.Style(
-                        background="#ffbd45",
-                        border_radius="10px",
-                        margin=me.Margin(right=10),
-                        height="35px",
-                        width="35px",
-                        display="flex",            # Make the icon container a flexbox
-                        justify_content="center",  # Horizontally center the icon
-                        align_items="center"       # Vertically center the icon
-                    )):
-                        me.icon("smart_toy", style=me.Style(
-                            height="25px",  # Adjust icon size if necessary
-                            width="25px",
-                            margin=me.Margin(top=5)
-                        ))
+              with me.box(style=_STYLE_CHAT_MESSAGE_BOX):
+                    with me.box(style=_make_chat_bubble_icon_style(msg.role)):
+                        me.icon("smart_toy", style=_STYLE_CHAT_MESSAGE_ICON)
                     me.markdown(msg.content)
 
       if state.in_progress:
@@ -269,25 +269,32 @@ def chat(
 
     with me.box(style=_STYLE_CHAT_INPUT_BOX):
       with me.box(style=me.Style(flex_grow=1)):
-        # better to use text area
-        me.input(
-        #   label=_LABEL_INPUT,
-          # Workaround: update key to clear input.
+        me.textarea(
+          label=_LABEL_INPUT,
           key=f"input-{len(state.output)}",
+          value=state.input,
           on_blur=on_blur,
-          on_enter=on_input_enter,
-          style=_STYLE_CHAT_INPUT,
-          placeholder=_LABEL_INPUT,
-          color="primary",
+          shortcuts={
+            me.Shortcut(key="enter"): on_input_enter,
+            me.Shortcut(shift=True, key="ENTER"): on_newline,
+            me.Shortcut(shift=True, meta=True, key="Enter"): on_clear,
+          },
           appearance="outline",
-        #   type=me.textarea(...)
+          style=_STYLE_CHAT_INPUT,
+          color="primary",
+          placeholder=_LABEL_INPUT,
+          rows=2,
+          autosize=True,
+          max_rows=5
         )
-      with me.content_button(
-        color="primary",
-        type="flat",
-        disabled=state.in_progress,
-        on_click=on_click_submit,
-        style=_STYLE_CHAT_BUTTON,
+
+      with me.content_uploader(
+        accepted_file_types=ACCEPTED_FILE_TYPES,
+        on_upload=handle_upload,
+        type="raised",
+        style=_STYLE_UPLOAD_BUTTON,
+        color="accent",
+        disabled=state.in_progress
       ):
         me.icon(
           _LABEL_BUTTON_IN_PROGRESS if state.in_progress else _LABEL_BUTTON
