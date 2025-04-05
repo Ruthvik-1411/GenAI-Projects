@@ -143,5 +143,40 @@ def settings_sidebar():
             me.text("8192")
 
 def transform(input: str, history: list[ChatMessage]):
-  return f"Echo: {input}"
+  if "citations" in input:
+     return {
+        "message": f"Echo: {input}",
+        "rich_content": {
+           "type": "citations",
+           "citations": [
+              {
+                 "title": "Citation 1",
+                 "url": "https://mesop-dev.github.io/mesop/"
+              },
+              {
+                 "title": "Citation 2",
+                 "url": "https://mesop-dev.github.io/mesop/"
+              }
+           ]
+        }
+     }
+  elif "chip" in input:
+     return {
+        "message": f"Echo: {input}",
+        "rich_content": {
+           "type": "chips",
+           "chips": [
+              {
+                 "text": "First message"
+              },
+              {
+                 "text": "Second message"
+              }
+           ]
+        }
+     }
+  else:
+     return {
+        "message": f"Echo: {input}"
+     }
     

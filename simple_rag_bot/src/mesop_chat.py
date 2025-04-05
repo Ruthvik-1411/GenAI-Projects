@@ -1,6 +1,6 @@
 import time
-from dataclasses import dataclass
-from typing import Callable, Generator, Literal
+from dataclasses import dataclass, field
+from typing import Optional, Union, Dict, Any, Callable, Generator, Literal
 
 import mesop as me
 
@@ -29,6 +29,7 @@ _LABEL_INPUT = "Type your message here."
 _STYLE_APP_CONTAINER = me.Style(
   background=_COLOR_BACKGROUND,
   display="flex",
+  align_content="start",
   flex_direction="column",
   height="100%",
   margin=me.Margin.symmetric(vertical=0, horizontal="auto"),
@@ -37,9 +38,10 @@ _STYLE_APP_CONTAINER = me.Style(
   padding=me.Padding(top=20, left=20, right=20),
 )
 _STYLE_TITLE = me.Style(padding=me.Padding(left=10),display="flex",
-        align_items="center",
-        justify_content="center",
-        font_family="Inter")
+  align_items="center",
+  justify_content="center",
+  font_family="Inter",
+)
 _STYLE_CHAT_BOX = me.Style(
   flex_grow=1,
   overflow_y="scroll",
@@ -69,6 +71,12 @@ _STYLE_CHAT_MESSAGE_ICON = me.Style(
   height="25px",
   width="25px",
   margin=me.Margin(top=5)
+)
+_STYLE_RICH_ELEMENT_BOX = style=me.Style(
+  display="flex",
+  flex_direction="column",
+  gap=15,
+  margin=me.Margin.all(15),
 )
 
 
@@ -130,7 +138,8 @@ class ChatMessage:
   """Chat message metadata."""
 
   role: Role = "user"
-  content: str = ""
+  content: Union[str, Dict[str, Any], None] = ""
+  rich_content: Optional[Dict[str, Any]] = field(default_factory=dict)
 
 
 @me.stateclass
@@ -152,17 +161,65 @@ def on_newline(e: me.TextareaShortcutEvent):
   state = me.state(State)
   state.input = e.value + "\n"
 
-
 def on_submit(e: me.TextareaShortcutEvent):
   state = me.state(State)
   state.input = e.value
   state.output = e.value
 
-
 def on_clear(e: me.TextareaShortcutEvent):
   state = me.state(State)
   state.input = ""
   state.output = ""
+
+def on_chip_click(event: me.ClickEvent):
+  state = me.state(State)
+  state.input = event.key
+
+def display_citations(citations):
+  with me.box(style=me.Style(display="flex", justify_content="flex-start")):
+      for i in range(len(citations)):
+        with me.card(appearance="raised", style=me.Style(display="inline-block",margin=me.Margin.all(2),background=me.theme_var("secondary-container"))):
+            with me.box(style=me.Style(display="flex", justify_content="start", align_items="center")):
+              with me.card_content():
+                  me.link(
+                      text=citations[i]["title"],
+                      open_in_new_tab=True,
+                      url=citations[i]["url"],
+                      style=me.Style(color=me.theme_var("tertiary"), text_decoration="none"),
+                  )
+              me.icon(icon="open_in_new",style=me.Style(margin=me.Margin(right=2, top=7), font_size=20))
+
+def display_chips(chips):
+  # state = me.state(State)
+  with me.box(style=me.Style(display="flex", justify_content="flex-start")):
+      for i in range(len(chips)):
+        # chip_at_turn = int(len(state.output) / 2)
+        with me.content_button(type="raised",
+                               on_click=on_chip_click,
+                              #  key=f"chip_{i}_turn_{chip_at_turn}",
+                               key=chips[i]["text"],
+                               style=me.Style(border_radius="10px",margin=me.Margin.all(5),background=me.theme_var("secondary-container")
+                              )):
+          me.text(text=chips[i]["text"])
+                  
+
+def display_rich_elements(rich_content):
+
+  if rich_content["type"] == "file":
+    # Display file name card
+    pass
+  elif rich_content["type"] == "image":
+    # Display image inside a container
+    pass
+  elif rich_content["type"] == "chips":
+    # Display clickable mini chip that populates the input bar
+    return display_chips(rich_content["chips"])
+    pass
+  elif rich_content["type"] == "citations":
+    # Display clickable card that opens a link in new page
+    return display_citations(rich_content["citations"])
+  else:
+    return None
 
 def chat(
   transform: Callable[
@@ -211,18 +268,22 @@ def chat(
     me.scroll_into_view(key="scroll-to")
     yield
 
-    start_time = time.time()
+    # start_time = time.time()
     output_message = transform(input, state.output)
     assistant_message = ChatMessage(role=_ROLE_ASSISTANT)
     output.append(assistant_message)
     state.output = output
-
-    for content in output_message:
-      assistant_message.content += content
-      # TODO: 0.25 is an abitrary choice. In the future, consider making this adjustable.
-      if (time.time() - start_time) >= 0.25:
-        start_time = time.time()
-        yield
+    
+    assistant_message.content = output_message["message"]
+    assistant_message.rich_content = output_message.get("rich_content")
+    
+    # TODO: Simulate streaming, currently static dict is passed
+    # for content in output_message:
+    #   assistant_message.content += content
+    #   # TODO: 0.25 is an abitrary choice. In the future, consider making this adjustable.
+    #   if (time.time() - start_time) >= 0.25:
+    #     start_time = time.time()
+    #     yield
     state.in_progress = False
     me.focus_component(key=f"input-{len(state.output)}")
     yield
@@ -238,15 +299,22 @@ def chat(
     if title:
       with me.box(
             style=me.Style(
-            display="flex", flex_direction="row",justify_content= "center",margin=me.Margin(right=10)
+            display="flex", flex_direction="row",justify_content= "center", margin=me.Margin(right=10),
         )):
         me.text(title, type="headline-3", style=_STYLE_TITLE)
+        # TODO: Make title as linear gradient if possible
+        # me.html(html=f"""
+        #         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+        #         <h3 style='background: linear-gradient(90deg, #5E60CE 0%, #FF6B6B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; font-family: Inter; font-size: 30px; white-space: nowrap;'>
+        #         {title}</h3>""",
+        #         mode="sandboxed")
         with me.content_button(
           type="icon",
           style=me.Style(margin=me.Margin(top=6)),
           on_click=toggle_theme,
         ):
           me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
+        
 
     with me.box(style=_STYLE_CHAT_BOX):
       for msg in state.output:
@@ -261,7 +329,13 @@ def chat(
               with me.box(style=_STYLE_CHAT_MESSAGE_BOX):
                     with me.box(style=_make_chat_bubble_icon_style(msg.role)):
                         me.icon("smart_toy", style=_STYLE_CHAT_MESSAGE_ICON)
-                    me.markdown(msg.content)
+                    if msg.rich_content:
+                      with me.box(style=_STYLE_RICH_ELEMENT_BOX):
+                        with me.box():
+                            me.markdown(msg.content)
+                        display_rich_elements(msg.rich_content)
+                    else:
+                      me.markdown(msg.content)
 
       if state.in_progress:
         with me.box(key="scroll-to", style=me.Style(height=300)):
