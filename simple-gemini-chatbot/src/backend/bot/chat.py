@@ -1,11 +1,11 @@
 """Code for chat handling logic"""
 # pylint: disable=W1203, R1737
+import os
 import logging
 import streamlit as st
-
 from langchain_google_genai import ChatGoogleGenerativeAI
+from config import GEMINI_API_KEY
 from ml_config import LLM_CONFIGS, MODELS
-from config import GEMINI_API_KEY # Import gemini api key
 from utils.utility import convert_to_multimodal_message
 
 logger = logging.getLogger(__name__)
@@ -14,6 +14,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+
 
 def initialize_model():
     """Initialize model in session state"""
