@@ -29,8 +29,8 @@ model_options = [
 class State:
   default_model: str = model_options[0].value
   initial_max_tokens_value: str = "1024"
-  initial_tokens_slider_value: float = 1024
-  tokens_slider_value: float = 1024
+  initial_tokens_slider_value: int = 1024
+  tokens_slider_value: int = 1024
 
 def on_selection_change_2(e: me.SelectSelectionChangeEvent):
   s = me.state(State)
@@ -38,12 +38,15 @@ def on_selection_change_2(e: me.SelectSelectionChangeEvent):
 
 def on_value_change(event: me.SliderValueChangeEvent):
   state = me.state(State)
-  state.tokens_slider_value = event.value
+  state.tokens_slider_value = int(event.value)
   state.initial_max_tokens_value = str(state.tokens_slider_value)
 
 def on_input(event: me.InputEvent):
   state = me.state(State)
-  state.initial_tokens_slider_value = float(event.value)
+  # When made empty, throws an error
+  if event.value == "":
+     event.value = 0
+  state.initial_tokens_slider_value = int(event.value)
   state.tokens_slider_value = state.initial_tokens_slider_value
 
 @me.page(path="/",
@@ -102,7 +105,7 @@ def chat_container():
 
 def settings_sidebar():
    state = me.state(State)
-   with me.box(style=me.Style(background=me.theme_var("surface-container-low"), overflow_y="auto")):
+   with me.box(style=me.Style(background=me.theme_var("surface-container-low"), overflow_y="auto",overflow_x="hidden")):
     me.text(text="Settings",
             style=me.Style(
                font_size=18,
@@ -121,7 +124,7 @@ def settings_sidebar():
         me.input(
             label="Max tokens",
             appearance="outline",
-            value=state.initial_max_tokens_value,
+            value=str(int(state.initial_max_tokens_value)),
             on_input=on_input,
             )
         me.slider(on_value_change=on_value_change,
@@ -129,11 +132,12 @@ def settings_sidebar():
                   min=0,
                   max=8192,
                   step=256,
+                  discrete=True,
                   style=me.Style(
-                    width="94%",
+                    width="90%",
                     height=50,
                     font_size=14,
-                    margin=me.Margin(right=10)
+                    margin=me.Margin(left=5, right=5)
                 ))
         with me.box(
             style=me.Style(

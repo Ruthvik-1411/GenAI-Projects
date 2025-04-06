@@ -265,7 +265,7 @@ def chat(
       output = []
     output.append(ChatMessage(role=_ROLE_USER, content=input))
     state.in_progress = True
-    me.scroll_into_view(key="scroll-to")
+    # me.scroll_into_view(key="end_of_messages")
     yield
 
     # start_time = time.time()
@@ -286,6 +286,7 @@ def chat(
     #     yield
     state.in_progress = False
     me.focus_component(key=f"input-{len(state.output)}")
+    me.scroll_into_view(key="end_of_messages")
     yield
 
   def toggle_theme(e: me.ClickEvent):
@@ -302,7 +303,7 @@ def chat(
             display="flex", flex_direction="row",justify_content= "center", margin=me.Margin(right=10),
         )):
         me.text(title, type="headline-3", style=_STYLE_TITLE)
-        # TODO: Make title as linear gradient if possible
+        # TODO: Make title as linear gradient
         # me.html(html=f"""
         #         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
         #         <h3 style='background: linear-gradient(90deg, #5E60CE 0%, #FF6B6B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; font-family: Inter; font-size: 30px; white-space: nowrap;'>
@@ -337,9 +338,8 @@ def chat(
                     else:
                       me.markdown(msg.content)
 
-      if state.in_progress:
-        with me.box(key="scroll-to", style=me.Style(height=300)):
-          pass
+      with me.box(key="end_of_messages", style=me.Style(height=1)):
+        pass
 
     with me.box(style=_STYLE_CHAT_INPUT_BOX):
       with me.box(style=me.Style(flex_grow=1)):
