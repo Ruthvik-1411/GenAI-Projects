@@ -4,6 +4,7 @@ import os
 import logging
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
+from config import GEMINI_API_KEY
 from ml_config import LLM_CONFIGS, MODELS
 from utils.utility import convert_to_multimodal_message
 
@@ -14,7 +15,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def initialize_model():
     """Initialize model in session state"""
