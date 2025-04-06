@@ -90,8 +90,8 @@ class PDFTextSplitter:
           "document_metadata": {
               "url": pdf_uri,
               # Since windows uses \ paths instead of /, the logic below is modified
-              # "title": pdf_uri.split("/")[-1]
-              "title": pdf_uri.split("\\")[-1]
+              "title": pdf_uri.split("/")[-1]
+              # "title": pdf_uri.split("\\")[-1]
           }
       }
 

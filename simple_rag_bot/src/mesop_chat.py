@@ -181,12 +181,18 @@ def display_citations(citations):
         with me.card(appearance="raised", style=me.Style(display="inline-block",margin=me.Margin.all(2),background=me.theme_var("secondary-container"))):
             with me.box(style=me.Style(display="flex", justify_content="start", align_items="center")):
               with me.card_content():
-                  me.link(
-                      text=citations[i]["title"],
-                      open_in_new_tab=True,
-                      url=citations[i]["url"],
-                      style=me.Style(color=me.theme_var("tertiary"), text_decoration="none"),
-                  )
+                # FIXME: citation url tries to navigate to page of mesop app
+                # local url starts with /home/user/...pdf. When opened in browser, browser opens it as file:///home/user/...pdf
+                # But when this url is displayed on UI, when opened, it opens as localhost:port/home/user/...pdf
+                # Since localhost is serving mesop and not pdf files, it's a broken url
+                # HOTFIX: serve the document/ folder as python http server and replace the url to hit this server.
+                me.link(
+                    text=citations[i]["title"],
+                    open_in_new_tab=True,
+                    # url=citations[i]["url"],
+                    url="http://0.0.0.0:8000/"+citations[i]["url"].split("/")[-1],
+                    style=me.Style(color=me.theme_var("tertiary"), text_decoration="none"),
+                )
               me.icon(icon="open_in_new",style=me.Style(margin=me.Margin(right=2, top=7), font_size=20))
 
 def display_chips(chips):

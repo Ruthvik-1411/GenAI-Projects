@@ -1,7 +1,7 @@
 import mesop as me
 # import mesop.labs as mel
 from mesop_chat import chat, ChatMessage
-from backend.core.chat import generate_response
+from backend.core.chat import generate_response, generate_rag_response
 
 CHAT_CONTAINER_STYLE = me.Style(
    background=me.theme_var("surface"),
@@ -102,7 +102,7 @@ def left_sidebar():
 
 def chat_container():
     with me.box(style=CHAT_CONTAINER_STYLE):
-        chat(generate_response, title="Good Morning, Ruths", bot_user="Assistant")
+        chat(generate_rag_response, title="Good Morning, Ruths", bot_user="Assistant")
 
 def settings_sidebar():
    state = me.state(State)

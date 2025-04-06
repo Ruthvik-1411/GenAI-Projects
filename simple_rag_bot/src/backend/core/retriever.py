@@ -48,4 +48,3 @@ class CustomMilvusClient:
       return retriever_result
     else:
       raise ValueError(f"Collection with {collection_name} does not exist. Please query on another collection or create a new collection using .create_collection.")
-     

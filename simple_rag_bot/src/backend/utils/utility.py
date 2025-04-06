@@ -3,6 +3,8 @@ from os import listdir
 from os.path import isfile, join
 import json
 
+from langchain_core.messages import HumanMessage, AIMessage
+
 def get_files_in_dir(path):
   """Get complete path of the pdf files in dir"""
   files_list = []
@@ -34,3 +36,54 @@ def load_embeddings(path):
     json_data = [json.loads(line) for line in json_file]
 
   return json_data
+
+def format_sources(relevant_docs: list):
+  """Format relevant docs into consumable format by llm"""
+  sources = ""
+  for i, doc in enumerate(relevant_docs[0]):
+    sources += f" {doc['entity']['content']} "
+
+  return sources
+
+def format_citations(relevant_docs: list):
+  """Format citations with required keys and page location"""
+  citations = []
+  docs = relevant_docs[0]
+  for doc in docs:
+      citation_data = {}
+      citation_data["id"] = doc["id"]
+      citation_data["content"] = doc["entity"]["content"]
+      document = doc["entity"]["document_metadata"]
+      citation_data["title"] = document["title"]
+      citation_data["url"] = document["url"] + "#page=" + str(min(doc["entity"]["page_span"]))
+      citations.append(citation_data)
+
+  return citations
+
+def format_chat_messages(chat_messages: list):
+
+  chat_history = []
+  for message in chat_messages:
+    if message.role == "user":
+      chat_history.append(HumanMessage(content=message.content))
+    elif message.role == "assistant":
+      chat_history.append(AIMessage(content=message.content))
+    else:
+      raise ValueError("Expected user/assistant role, got something else")
+  
+  return chat_history
+
+# def format_chat_history(chat_history: list):
+
+#   chat_messages = []
+#   for message in chat_history:
+#     if isinstance(message, HumanMessage):
+#       chat_messages.append(
+#         ChatMessage(role="user", content=message.content)
+#       )
+#     elif isinstance(message, AIMessage):
+#       chat_messages.append(ChatMessage(role="user", content=message.content))
+#     else:
+#       raise ValueError("Expected Human/AI message got something else")
+  
+#   return chat_messages
