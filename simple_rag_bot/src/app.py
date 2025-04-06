@@ -1,6 +1,7 @@
 import mesop as me
 # import mesop.labs as mel
 from mesop_chat import chat, ChatMessage
+from backend.core.chat import generate_response
 
 CHAT_CONTAINER_STYLE = me.Style(
    background=me.theme_var("surface"),
@@ -101,7 +102,7 @@ def left_sidebar():
 
 def chat_container():
     with me.box(style=CHAT_CONTAINER_STYLE):
-        chat(transform, title="Good Morning, Ruths", bot_user="Assistant")
+        chat(generate_response, title="Good Morning, Ruths", bot_user="Assistant")
 
 def settings_sidebar():
    state = me.state(State)
@@ -146,41 +147,6 @@ def settings_sidebar():
             me.text("0")
             me.text("8192")
 
-def transform(input: str, history: list[ChatMessage]):
-  if "citations" in input:
-     return {
-        "message": f"Echo: {input}",
-        "rich_content": {
-           "type": "citations",
-           "citations": [
-              {
-                 "title": "Citation 1",
-                 "url": "https://mesop-dev.github.io/mesop/"
-              },
-              {
-                 "title": "Citation 2",
-                 "url": "https://mesop-dev.github.io/mesop/"
-              }
-           ]
-        }
-     }
-  elif "chip" in input:
-     return {
-        "message": f"Echo: {input}",
-        "rich_content": {
-           "type": "chips",
-           "chips": [
-              {
-                 "text": "First message"
-              },
-              {
-                 "text": "Second message"
-              }
-           ]
-        }
-     }
-  else:
-     return {
-        "message": f"Echo: {input}"
-     }
+# def transform(input: str, history: list[ChatMessage]):
+  
     
