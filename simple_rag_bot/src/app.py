@@ -1,7 +1,19 @@
+from enum import Enum
 import mesop as me
 # import mesop.labs as mel
 from mesop_chat import chat, ChatMessage
 from backend.core.chat import generate_response, generate_rag_response
+
+class ModelOptions(Enum):
+    GEMINI_2_0_FLASH = "gemini-2.0-flash"
+    GEMINI_1_5_PRO = "gemini-1.5-pro"
+    GEMINI_1_5_FLASH = "gemini-1.5-flash"
+
+model_mapping = {
+    ModelOptions.GEMINI_2_0_FLASH: "Gemini 2.0 Flash",
+    ModelOptions.GEMINI_1_5_PRO: "Gemini 1.5 Pro",
+    ModelOptions.GEMINI_1_5_FLASH: "Gemini 1.5 Flash",
+}
 
 CHAT_CONTAINER_STYLE = me.Style(
    background=me.theme_var("surface"),
@@ -21,9 +33,8 @@ MODEL_SELECT_STYLE = me.Style(
 )
 
 model_options = [
-    me.SelectOption(label="Gemini 2.0 Flash", value="gemini-2.0-flash"),
-    me.SelectOption(label="Gemini 1.5 Pro", value="gemini-1.5-pro"),
-    me.SelectOption(label="Gemini 1.5 Flash", value="gemini-1.5-flash"),
+    me.SelectOption(label=label, value=option.value)
+    for option, label in model_mapping.items()
 ]
 
 @me.stateclass
@@ -58,7 +69,7 @@ def on_input(event: me.InputEvent):
 def app_screen():
     with me.box(style=me.Style(
         display="grid",
-        grid_template_columns="0.25fr 1fr 0.25fr",
+        grid_template_columns="250px 1fr",
         height="100%"
     )):
         # Left Sidebar
@@ -74,7 +85,7 @@ def app_screen():
             chat_container()
         
         # Settings bar
-        settings_sidebar()
+        # settings_sidebar()
 
 def left_sidebar():
    with me.box(style=me.Style(
