@@ -174,9 +174,9 @@ def chat_session(query, chat_history):
 
 def generate_rag_response(input: str, history: list=[]):
 
-    print(f"Messages {type(history)}: {history}")
+    # print(f"Messages {type(history)}: {history}")
     formatted_messages = format_chat_messages(history)
-    print(f"Formatted {type(formatted_messages)}: {formatted_messages}")
+    # print(f"Formatted {type(formatted_messages)}: {formatted_messages}")
 
     bot_response, citations = chat_session(input, formatted_messages)
 
