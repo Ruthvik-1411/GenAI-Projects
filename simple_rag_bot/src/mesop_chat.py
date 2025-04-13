@@ -234,6 +234,7 @@ def chat(
   *,
   title: str | None = None,
   bot_user: str = _BOT_USER_DEFAULT,
+  reset: bool = False
 ):
   """Creates a simple chat UI which takes in a prompt and chat history and returns a
   response to the prompt.
@@ -247,6 +248,9 @@ def chat(
     bot_user: Name of your bot / assistant.
   """
   state = me.state(State)
+
+  if reset:
+      state.output = []
 
   def on_click_submit(e: me.ClickEvent):
     yield from submit()
@@ -321,7 +325,6 @@ def chat(
           on_click=toggle_theme,
         ):
           me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
-        
 
     with me.box(style=_STYLE_CHAT_BOX):
       for msg in state.output:

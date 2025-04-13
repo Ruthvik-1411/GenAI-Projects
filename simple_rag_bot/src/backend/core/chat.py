@@ -1,7 +1,7 @@
 import json
+import logging
 from typing import List, Annotated, Sequence
 from typing_extensions import TypedDict
-
 from backend.core.prompts import router_prompt,rag_prompt, query_rewrite_prompt, chitchat_prompt
 from backend.core.tools import get_relevant_docs_tool
 from backend.ml_config import LLM_CONFIGS
@@ -15,21 +15,28 @@ from langgraph.graph.message import add_messages
 from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import ToolNode
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
 tools = [get_relevant_docs_tool]
 class AgentState(TypedDict):
-
-  messages: Annotated[Sequence[BaseMessage], add_messages]
-  chat_messages: Annotated[Sequence[BaseMessage], add_messages]
-  chat_history: Sequence[BaseMessage]
-  relevant_docs: List
-  tool_call: dict
-  bot_response: str
-  rewritten_query: str
+    """Class for maintaining graph state"""
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+    chat_messages: Annotated[Sequence[BaseMessage], add_messages]
+    chat_history: Sequence[BaseMessage]
+    relevant_docs: List
+    tool_call: dict
+    bot_response: str
+    rewritten_query: str
 
 class RAGApp():
-
+    """Class for rag application"""
     def __init__(self, params) -> None:
-        print("Initializing rag app...")
+        logger.info("Initializing rag app...")
         self.gemini_api_key = params.get("gemini_api_key")
         self.model_key = params.get("model")
         self.chat_model = ChatGoogleGenerativeAI(**LLM_CONFIGS[self.model_key],google_api_key=self.gemini_api_key)
@@ -44,7 +51,7 @@ class RAGApp():
     def rewrite(self, state):
         """Rewrite query based on chat history"""
 
-        print("---CALL REWRITE---")
+        logger.info("---CALL REWRITE---")
 
         messages = state["messages"]
         user_query = messages[0].content
@@ -52,19 +59,19 @@ class RAGApp():
         chat_history = state["chat_history"]
 
         if chat_history:
-            print("---REWRITING USING HISTORY---")
+            logger.info("---REWRITING USING HISTORY---")
             rewritten_query = self.rewrite_chain.invoke({
                 "chat_history": chat_history,
                 "question": user_query
             })
-            print("---REWRITTEN QUERY---")
-            print(rewritten_query)
+            logger.info("---REWRITTEN QUERY---")
+            logger.info(rewritten_query)
 
             return {
                 "rewritten_query": rewritten_query
             }
         else:
-            print("-HISTORY NOT FOUND-")
+            logger.info("-HISTORY NOT FOUND-")
             return {
                 "rewritten_query": None
             }
@@ -72,7 +79,7 @@ class RAGApp():
     def router(self, state):
         """Call router to decide which tool to user"""
 
-        print("---CALL ROUTER---")
+        logger.info("---CALL ROUTER---")
 
         messages = state["messages"]
         chat_history = state["chat_history"]
@@ -92,8 +99,9 @@ class RAGApp():
     
     def tool_check_condition(self, state):
         """Checks tool call and routes to next layer"""
-        print("---CHECK TOOL CALL---")
-        print(state["tool_call"])
+        
+        logger.info("---CHECK TOOL CALL---")
+        logger.info(state["tool_call"])
 
         if state.get("tool_call"):
             for tool_call in state.get("tool_call"):
@@ -108,15 +116,15 @@ class RAGApp():
     def chit_chat(self, state):
         """Handle chit chat"""
 
-        print("---CALL CHITCHAT---")
+        logger.info("---CALL CHITCHAT---")
         messages = state["messages"]
         chat_history = state.get("chat_history")
 
         user_query = messages[0].content
-        print("---QUERY---", user_query)
+        logger.info(f"---QUERY---\n{user_query}")
         rewritten_query = state.get("rewritten_query")
         if rewritten_query:
-            print("---USING REWRITTEN QUERY---", rewritten_query)
+            logger.info(f"---USING REWRITTEN QUERY---\n{rewritten_query}")
             user_query = rewritten_query
 
         response = self.chitchat_chain.invoke({
@@ -124,7 +132,7 @@ class RAGApp():
             "user_query": user_query
         })
 
-        print(response)
+        logger.info(response)
 
         return {
             "messages": [AIMessage(content=response)],
@@ -136,16 +144,16 @@ class RAGApp():
     def generate(self, state):
         """Generate response to user query based on retrieved sources"""
 
-        print("---CALL GENERATE---")
+        logger.info("---CALL GENERATE---")
         messages = state["messages"]
         chat_history = state.get("chat_history")
         tool_response = json.loads(messages[-1].content)
 
         user_query = messages[0].content
-        print("---QUERY---", user_query)
+        logger.info(f"---QUERY--- \n {user_query}")
         rewritten_query = state.get("rewritten_query")
         if rewritten_query:
-            print("---USING REWRITTEN QUERY---", rewritten_query)
+            logger.info(f"---USING REWRITTEN QUERY---\n{rewritten_query}")
             user_query = rewritten_query
 
         sources = format_sources(tool_response)
@@ -156,7 +164,7 @@ class RAGApp():
             "chat_history": chat_history
         })
 
-        print(response)
+        logger.info(response)
 
         return {
             "messages": [AIMessage(content=response)],
@@ -167,7 +175,7 @@ class RAGApp():
         }
     
     def _build_workflow_graph(self):
-
+        """Build graph"""
         workflow = StateGraph(AgentState)
 
         workflow.add_node("router", self.router)
@@ -197,6 +205,7 @@ class RAGApp():
         return graph
 
     def chat_session(self, query, chat_history):
+        """Create session to chat with the graph"""
         user_input = {
             "messages": [HumanMessage(content=query)],
             "chat_history": chat_history
@@ -208,9 +217,12 @@ class RAGApp():
 
     def generate_rag_response(self, input: str, history: list=[]):
         """Generates responses using input and history"""
-        print("Called from class")
+        
+        # mesop_chat adds user message to the history for 1st message.
+        # Chat history should be added after completion of turn, so ignoring first addition.
+        if len(history) == 1:
+            history = []
         formatted_messages = format_chat_messages(history)
-
         bot_response, citations = self.chat_session(input, formatted_messages)
 
         if citations:
