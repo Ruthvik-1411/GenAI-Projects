@@ -231,11 +231,13 @@ class RAGApp():
                 "rich_content": {
                     "type": "citations",
                     "citations": citations
-                }
+                },
+                "diagnostic_info": "Sample info"
             }
         else:
             response = {
-                "message": bot_response
+                "message": bot_response,
+                "diagnostic_info": "Sample info"
             }
         return response
 
