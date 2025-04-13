@@ -1,8 +1,9 @@
 from enum import Enum
 import mesop as me
 # import mesop.labs as mel
-from mesop_chat import chat, ChatMessage
-from backend.core.chat import generate_response, generate_rag_response
+from mesop_chat import chat
+from backend.core.chat import RAGApp
+from backend.config import GEMINI_API_KEY
 
 class ModelOptions(Enum):
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
@@ -14,6 +15,12 @@ model_mapping = {
     ModelOptions.GEMINI_1_5_PRO: "Gemini 1.5 Pro",
     ModelOptions.GEMINI_1_5_FLASH: "Gemini 1.5 Flash",
 }
+
+# Can pass model key and params to this
+rag_instance = RAGApp({
+    "model": "gemini-2.0-flash",
+    "gemini_api_key": GEMINI_API_KEY
+})
 
 CHAT_CONTAINER_STYLE = me.Style(
    background=me.theme_var("surface"),
@@ -43,6 +50,7 @@ class State:
   initial_max_tokens_value: str = "1024"
   initial_tokens_slider_value: int = 1024
   tokens_slider_value: int = 1024
+  is_new_conversation: bool = False
 
 def on_selection_change_2(e: me.SelectSelectionChangeEvent):
   s = me.state(State)
@@ -60,6 +68,10 @@ def on_input(event: me.InputEvent):
      event.value = 0
   state.initial_tokens_slider_value = int(event.value)
   state.tokens_slider_value = state.initial_tokens_slider_value
+
+def on_new_conversation(event: me.ClickEvent):
+    state = me.state(State)
+    state.is_new_conversation = True
 
 @me.page(path="/",
          title="Simple RAG App",
@@ -92,15 +104,17 @@ def left_sidebar():
         background=me.theme_var("surface-container-low"),
         overflow_y="auto"
     )):
-        with me.content_button(type="raised", style=me.Style(
-            width=200,
-            display="flex",
-            flex_direction="row",
-            align_items="center",
-            justify_content= "space-between",
-            border_radius="10px",
-            margin=me.Margin.symmetric(vertical=20, horizontal="auto"),
-            background=me.theme_var("secondary-container")
+        with me.content_button(type="raised", 
+            on_click=on_new_conversation,
+            style=me.Style(
+                width=200,
+                display="flex",
+                flex_direction="row",
+                align_items="center",
+                justify_content= "space-between",
+                border_radius="10px",
+                margin=me.Margin.symmetric(vertical=20, horizontal="auto"),
+                background=me.theme_var("secondary-container")
         )):
             with me.box(style=me.Style(
                 display="flex",
@@ -112,8 +126,10 @@ def left_sidebar():
                 me.text(text="New Conversation")
 
 def chat_container():
+    state = me.state(State)
     with me.box(style=CHAT_CONTAINER_STYLE):
-        chat(generate_rag_response, title="Good Morning, Ruths", bot_user="Assistant")
+        chat(rag_instance.generate_rag_response, title="Good Morning, Ruths", bot_user="Assistant", reset=state.is_new_conversation)
+    state.is_new_conversation = False
 
 def settings_sidebar():
    state = me.state(State)
@@ -157,7 +173,4 @@ def settings_sidebar():
         )):
             me.text("0")
             me.text("8192")
-
-# def transform(input: str, history: list[ChatMessage]):
-  
     

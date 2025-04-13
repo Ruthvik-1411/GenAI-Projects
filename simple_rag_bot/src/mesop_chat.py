@@ -140,6 +140,7 @@ class ChatMessage:
   role: Role = "user"
   content: Union[str, Dict[str, Any], None] = ""
   rich_content: Optional[Dict[str, Any]] = field(default_factory=dict)
+  diagnostic_info: Optional[Dict[str, Any]] = field(default_factory=dict)
 
 
 @me.stateclass
@@ -148,6 +149,7 @@ class State:
   output: list[ChatMessage]
   in_progress: bool = False
   file: me.UploadedFile
+  is_open: bool = False
 
 def handle_upload(event: me.UploadEvent):
   state = me.state(State)
@@ -174,6 +176,19 @@ def on_clear(e: me.TextareaShortcutEvent):
 def on_chip_click(event: me.ClickEvent):
   state = me.state(State)
   state.input = event.key
+
+def on_click_close_background(e: me.ClickEvent):
+  state = me.state(State)
+  if e.is_target:
+    state.is_open = False
+
+def on_click_close_dialog(e: me.ClickEvent):
+  state = me.state(State)
+  state.is_open = False
+
+def on_click_dialog_open(e: me.ClickEvent):
+  state = me.state(State)
+  state.is_open = True
 
 def display_citations(citations):
   with me.box(style=me.Style(display="flex", justify_content="flex-start")):
@@ -234,6 +249,7 @@ def chat(
   *,
   title: str | None = None,
   bot_user: str = _BOT_USER_DEFAULT,
+  reset: bool = False
 ):
   """Creates a simple chat UI which takes in a prompt and chat history and returns a
   response to the prompt.
@@ -247,6 +263,9 @@ def chat(
     bot_user: Name of your bot / assistant.
   """
   state = me.state(State)
+
+  if reset:
+      state.output = []
 
   def on_click_submit(e: me.ClickEvent):
     yield from submit()
@@ -282,6 +301,7 @@ def chat(
     
     assistant_message.content = output_message["message"]
     assistant_message.rich_content = output_message.get("rich_content")
+    assistant_message.diagnostic_info = output_message.get("diagnostic_info")
     
     # TODO: Simulate streaming, currently static dict is passed
     # for content in output_message:
@@ -321,7 +341,6 @@ def chat(
           on_click=toggle_theme,
         ):
           me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
-        
 
     with me.box(style=_STYLE_CHAT_BOX):
       for msg in state.output:
@@ -343,6 +362,27 @@ def chat(
                         display_rich_elements(msg.rich_content)
                     else:
                       me.markdown(msg.content)
+            # TODO: Improve diagnostic info dialog appearance and allow for scrollable box
+            if msg.diagnostic_info:
+              with me.box(style=me.Style(
+                display="flex",
+                flex_direction="row-reverse",
+                align_items="center"
+              )):
+                with dialog(
+                  is_open=state.is_open,
+                  on_click_background=on_click_close_background,
+                ):
+                  me.text("Diagnostic Info", type="headline-5")
+                  with me.box(style=me.Style(overflow_x="scroll",overflow_y="scroll")):
+                    me.markdown(msg.diagnostic_info)
+                  with dialog_actions():
+                    me.button("Close", on_click=on_click_close_dialog)
+                    me.button("Copy", on_click=on_click_close_dialog)
+                with me.content_button(type="icon",on_click=on_click_dialog_open):
+                  me.icon("assignment")
+                with me.content_button(type="icon"):
+                  me.icon("content_copy")
 
       with me.box(key="end_of_messages", style=me.Style(height=1)):
         pass
@@ -379,3 +419,55 @@ def chat(
         me.icon(
           _LABEL_BUTTON_IN_PROGRESS if state.in_progress else _LABEL_BUTTON
         )
+
+@me.content_component
+def dialog(*, is_open: bool, on_click_background: Callable | None = None):
+  with me.box(
+    style=me.Style(
+      background="rgba(0, 0, 0, 0.4)"
+      if me.theme_brightness() == "light"
+      else "rgba(255, 255, 255, 0.4)",
+      display="block" if is_open else "none",
+      height="100%",
+      overflow_x="scroll",
+      overflow_y="scroll",
+      position="fixed",
+      width="100%",
+      z_index=1000,
+    ),
+  ):
+    with me.box(
+      on_click=on_click_background,
+      style=me.Style(
+        place_items="center",
+        display="grid",
+        height="100vh",
+      ),
+    ):
+      with me.box(
+        style=me.Style(
+          background=me.theme_var("surface-container-lowest"),
+          border_radius=20,
+          box_sizing="content-box",
+          # box_shadow=(
+          #   "0 3px 1px -2px #0003, 0 2px 2px #00000024, 0 1px 5px #0000001f"
+          # ),
+          margin=me.Margin.symmetric(vertical="0", horizontal="auto"),
+          padding=me.Padding.all(20),
+        )
+      ):
+        me.slot()
+
+@me.content_component
+def dialog_actions():
+  """Helper component for rendering action buttons so they are right aligned.
+
+  This component is optional. If you want to position action buttons differently,
+  you can just write your own Mesop markup.
+  """
+  with me.box(
+    style=me.Style(
+      display="flex", justify_content="end", gap=5, margin=me.Margin(top=20)
+    )
+  ):
+    me.slot()
