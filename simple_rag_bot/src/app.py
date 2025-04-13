@@ -1,8 +1,9 @@
 from enum import Enum
 import mesop as me
 # import mesop.labs as mel
-from mesop_chat import chat, ChatMessage
-from backend.core.chat import generate_response, generate_rag_response
+from mesop_chat import chat
+from backend.core.chat import RAGApp
+from backend.config import GEMINI_API_KEY
 
 class ModelOptions(Enum):
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
@@ -14,6 +15,12 @@ model_mapping = {
     ModelOptions.GEMINI_1_5_PRO: "Gemini 1.5 Pro",
     ModelOptions.GEMINI_1_5_FLASH: "Gemini 1.5 Flash",
 }
+
+# Can pass model key and params to this
+rag_instance = RAGApp({
+    "model": "gemini-2.0-flash",
+    "gemini_api_key": GEMINI_API_KEY
+})
 
 CHAT_CONTAINER_STYLE = me.Style(
    background=me.theme_var("surface"),
@@ -113,7 +120,7 @@ def left_sidebar():
 
 def chat_container():
     with me.box(style=CHAT_CONTAINER_STYLE):
-        chat(generate_rag_response, title="Good Morning, Ruths", bot_user="Assistant")
+        chat(rag_instance.generate_rag_response, title="Good Morning, Ruths", bot_user="Assistant")
 
 def settings_sidebar():
    state = me.state(State)
@@ -157,7 +164,4 @@ def settings_sidebar():
         )):
             me.text("0")
             me.text("8192")
-
-# def transform(input: str, history: list[ChatMessage]):
-  
     
