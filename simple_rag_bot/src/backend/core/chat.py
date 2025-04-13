@@ -2,12 +2,9 @@ import json
 from typing import List, Annotated, Sequence
 from typing_extensions import TypedDict, Annotated
 
-from backend.core.chunking import PDFTextSplitter
-from backend.core.embedding import EmbeddingClient
-from backend.core.retriever import CustomMilvusClient
 from backend.config import GEMINI_API_KEY
 
-from backend.core.prompts import router_prompt,rag_prompt, query_rewrite_prompt
+from backend.core.prompts import router_prompt,rag_prompt, query_rewrite_prompt, chitchat_prompt
 from backend.core.tools import get_relevant_docs_tool
 from backend.ml_config import LLM_CONFIGS
 
@@ -26,6 +23,7 @@ tools = [get_relevant_docs_tool]
 
 rag_chain = rag_prompt | chat_model | StrOutputParser()
 rewrite_chain = query_rewrite_prompt | chat_model | StrOutputParser()
+chitchat_chain = chitchat_prompt | chat_model | StrOutputParser()
 
 class AgentState(TypedDict):
 
@@ -58,7 +56,8 @@ def router(state):
   return {
       "messages": [response],
       "chat_messages": messages,
-      "tool_call": response.tool_calls
+      "tool_call": response.tool_calls,
+      "rewritten_query": state["rewritten_query"]
   }
 
 def tool_check_condition(state):
@@ -73,10 +72,10 @@ def tool_check_condition(state):
         #should modify graph accordingly
         return "other_tool"
   else:
-    return "END"
+    return "chit_chat"
 
 def rewrite(state):
-  """Rewrite query"""
+  """Rewrite query based on chat history"""
 
   print("---CALL REWRITE---")
 
@@ -102,6 +101,34 @@ def rewrite(state):
     return {
         "rewritten_query": ""
     }
+
+def chit_chat(state):
+  """Handle chit chat"""
+
+  print("---CALL CHITCHAT---")
+  messages = state["messages"]
+  chat_history = state.get("chat_history")
+
+  user_query = messages[0].content
+  print("---QUERY---", user_query)
+  rewritten_query = state.get("rewritten_query")
+  if rewritten_query:
+    print("---USING REWRITTEN QUERY---", rewritten_query)
+    user_query = rewritten_query
+
+  response = chitchat_chain.invoke({
+      "chat_history": chat_history,
+      "user_query": user_query
+  })
+
+  print(response)
+
+  return {
+      "messages": [AIMessage(content=response)],
+      "chat_messages": [AIMessage(content=response)],
+      "bot_response": response,
+      "rewritten_query": rewritten_query
+  }
 
 def generate(state):
   """Generate response to user query based on retrieved sources"""
@@ -143,20 +170,22 @@ retriever = ToolNode([get_relevant_docs_tool])
 workflow.add_node("retriever", retriever)
 workflow.add_node("rewrite",rewrite)
 workflow.add_node("generate", generate)
+workflow.add_node("chit_chat",chit_chat)
 
-workflow.add_edge(START, "router")
+workflow.add_edge(START, "rewrite")
+workflow.add_edge("rewrite", "router")
 workflow.add_conditional_edges(
     "router",
     tool_check_condition,
     {
-        "retrieve_tool": "rewrite",
-        "END": END
+        "retrieve_tool": "retriever",
+        "chit_chat": "chit_chat"
     }
 
 )
-workflow.add_edge("rewrite","retriever")
 workflow.add_edge("retriever", "generate")
 workflow.add_edge("generate", END)
+workflow.add_edge("chit_chat", END)
 
 graph = workflow.compile()
 
@@ -233,7 +262,3 @@ def generate_response(input: str, history: list=[]):
         }
     
     return response
-
-# from chunking import PDFTextSplitter
-
-# document_splitter = PDFTextSplitter()
