@@ -18,9 +18,6 @@ _COLOR_CHAT_BUBBLE_YOU = me.theme_var("surface")
 _COLOR_CHAT_BUBBLE_BOT = me.theme_var("surface-container-low")
 
 _DEFAULT_PADDING = me.Padding.all(5)
-_DEFAULT_BORDER_SIDE = me.BorderSide(
-  width="1px", style="solid", color=me.theme_var("secondary-fixed")
-)
 
 _LABEL_BUTTON = "attach_file"
 _LABEL_BUTTON_IN_PROGRESS = "pending"
@@ -49,17 +46,24 @@ _STYLE_CHAT_BOX = me.Style(
   margin=me.Margin(bottom=10),
   border_radius="10px",
 )
-_STYLE_CHAT_INPUT = me.Style(width="100%",border=me.Border.all(me.BorderSide(style="none")))
+_STYLE_CHAT_INPUT = me.Style(
+  background=me.theme_var("surface-container"),
+  border=me.Border.all(me.BorderSide(style="none"),),
+  color=me.theme_var("on-surface-variant"),
+  outline="none",
+  overflow_y="auto",
+  padding=me.Padding(top=16, left=16),
+  width="100%",
+)
 _STYLE_CHAT_INPUT_BOX = me.Style(
-  padding=me.Padding(top=-1), display="flex", flex_direction="row"
+  background=me.theme_var("surface-container"),
+  border_radius=16,
+  display="flex",
+  margin=me.Margin(bottom=8),
+  padding=me.Padding.all(8),
 )
-_STYLE_UPLOAD_BUTTON = me.Style(margin=me.Margin(top=8, left=8),font_weight="bold",background=me.theme_var("secondary-container"))
-_STYLE_CHAT_BUBBLE_NAME = me.Style(
-  font_weight="bold",
-  font_size="13px",
-  padding=me.Padding(left=15, right=15, bottom=5)
-)
-_STYLE_CHAT_BUBBLE_PLAINTEXT = me.Style(margin=me.Margin.symmetric(vertical=15))
+_STYLE_UPLOAD_BUTTON = me.Style(margin=me.Margin(top=8, left=8),font_weight="bold")
+
 _STYLE_CHAT_MESSAGE_BOX = me.Style(
   display="flex",
   flex_direction="row",
@@ -149,7 +153,7 @@ class State:
   output: list[ChatMessage]
   in_progress: bool = False
   file: me.UploadedFile
-  is_open: bool = False
+  open_dialog_id: str | None = None
 
 def handle_upload(event: me.UploadEvent):
   state = me.state(State)
@@ -180,15 +184,63 @@ def on_chip_click(event: me.ClickEvent):
 def on_click_close_background(e: me.ClickEvent):
   state = me.state(State)
   if e.is_target:
-    state.is_open = False
+    state.open_dialog_id = None
 
 def on_click_close_dialog(e: me.ClickEvent):
   state = me.state(State)
-  state.is_open = False
+  state.open_dialog_id = None
 
 def on_click_dialog_open(e: me.ClickEvent):
   state = me.state(State)
-  state.is_open = True
+  state.open_dialog_id = e.key
+
+@me.content_component
+def dialog(*, is_open: bool, on_click_background: Callable | None = None):
+  with me.box(
+    style=me.Style(
+      background="rgba(0, 0, 0, 0.4)"
+      if me.theme_brightness() == "light" else "rgba(255, 255, 255, 0.4)",
+      display="block" if is_open else "none",
+      height="100%",
+      position="fixed",
+      top=0,
+      left=0,
+      width="100%",
+      z_index=1000,
+    ),
+  ):
+    with me.box(
+      on_click=on_click_background,
+      style=me.Style(
+        place_items="center",
+        display="grid",
+        height="100%",
+      ),
+    ):
+      with me.box(
+        style=me.Style(
+          background=me.theme_var("surface-container-lowest"),
+          border_radius=20,
+          box_sizing="content-box",
+          margin=me.Margin.symmetric(vertical="0", horizontal="auto"),
+          padding=me.Padding.all(20),
+        )
+      ):
+        me.slot()
+
+@me.content_component
+def dialog_actions():
+  """Helper component for rendering action buttons so they are right aligned.
+
+  This component is optional. If you want to position action buttons differently,
+  you can just write your own Mesop markup.
+  """
+  with me.box(
+    style=me.Style(
+      display="flex", justify_content="end", gap=5, margin=me.Margin(top=20)
+    )
+  ):
+    me.slot()
 
 def display_citations(citations):
   with me.box(style=me.Style(display="flex", justify_content="flex-start")):
@@ -211,19 +263,16 @@ def display_citations(citations):
               me.icon(icon="open_in_new",style=me.Style(margin=me.Margin(right=2, top=7), font_size=20))
 
 def display_chips(chips):
-  # state = me.state(State)
+  """Display chip buttons to auto populate chip text in input area"""
   with me.box(style=me.Style(display="flex", justify_content="flex-start")):
       for i in range(len(chips)):
-        # chip_at_turn = int(len(state.output) / 2)
         with me.content_button(type="raised",
                                on_click=on_chip_click,
-                              #  key=f"chip_{i}_turn_{chip_at_turn}",
                                key=chips[i]["text"],
                                style=me.Style(border_radius="10px",margin=me.Margin.all(5),background=me.theme_var("secondary-container")
                               )):
           me.text(text=chips[i]["text"])
                   
-
 def display_rich_elements(rich_content):
 
   if rich_content["type"] == "file":
@@ -241,6 +290,40 @@ def display_rich_elements(rich_content):
     return display_citations(rich_content["citations"])
   else:
     return None
+
+def display_helper_buttons(message, message_index):
+  state = me.state(State)
+  dialog_id = f"dialog_{message_index}"
+
+  with me.box(style=me.Style(
+    display="flex",
+    flex_direction="row-reverse",
+    align_items="center"
+    )):
+      with dialog(
+        is_open=(state.open_dialog_id == dialog_id),
+        on_click_background=on_click_close_background,
+      ):
+        me.text("Diagnostic Info", type="headline-5")
+        with me.box(
+          style=me.Style(
+            overflow_y="auto",
+            max_height="360px",
+            background=me.theme_var("surface"),
+            border_radius=10,
+            padding=me.Padding.all(10),
+            font_family="monospace",
+            font_size="14px",
+            white_space="pre-wrap",
+          )
+        ):
+          me.markdown("```"+message.diagnostic_info)
+        with dialog_actions():
+          me.button("Close", on_click=on_click_close_dialog)
+      with me.content_button(type="icon",on_click=on_click_dialog_open, key=dialog_id):
+        me.icon("assignment")
+      with me.content_button(type="icon"):
+        me.icon("content_copy")
 
 def chat(
   transform: Callable[
@@ -343,7 +426,7 @@ def chat(
           me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
 
     with me.box(style=_STYLE_CHAT_BOX):
-      for msg in state.output:
+      for index, msg in enumerate(state.output):
         with me.box(style=_make_style_chat_bubble_wrapper(msg.role)):
           with me.box(style=_make_chat_bubble_style(msg.role)):
             if msg.role == _ROLE_USER:
@@ -362,35 +445,14 @@ def chat(
                         display_rich_elements(msg.rich_content)
                     else:
                       me.markdown(msg.content)
-            # TODO: Improve diagnostic info dialog appearance and allow for scrollable box
             if msg.diagnostic_info:
-              with me.box(style=me.Style(
-                display="flex",
-                flex_direction="row-reverse",
-                align_items="center"
-              )):
-                with dialog(
-                  is_open=state.is_open,
-                  on_click_background=on_click_close_background,
-                ):
-                  me.text("Diagnostic Info", type="headline-5")
-                  with me.box(style=me.Style(overflow_x="scroll",overflow_y="scroll")):
-                    me.markdown(msg.diagnostic_info)
-                  with dialog_actions():
-                    me.button("Close", on_click=on_click_close_dialog)
-                    me.button("Copy", on_click=on_click_close_dialog)
-                with me.content_button(type="icon",on_click=on_click_dialog_open):
-                  me.icon("assignment")
-                with me.content_button(type="icon"):
-                  me.icon("content_copy")
-
+              display_helper_buttons(msg, index)
       with me.box(key="end_of_messages", style=me.Style(height=1)):
         pass
 
     with me.box(style=_STYLE_CHAT_INPUT_BOX):
       with me.box(style=me.Style(flex_grow=1)):
-        me.textarea(
-          label=_LABEL_INPUT,
+        me.native_textarea(
           key=f"input-{len(state.output)}",
           value=state.input,
           on_blur=on_blur,
@@ -399,75 +461,19 @@ def chat(
             me.Shortcut(shift=True, key="ENTER"): on_newline,
             me.Shortcut(shift=True, meta=True, key="Enter"): on_clear,
           },
-          appearance="outline",
           style=_STYLE_CHAT_INPUT,
-          color="primary",
           placeholder=_LABEL_INPUT,
-          rows=2,
           autosize=True,
-          max_rows=5
+          min_rows=5,
+          max_rows=10
         )
 
       with me.content_uploader(
         accepted_file_types=ACCEPTED_FILE_TYPES,
         on_upload=handle_upload,
-        type="raised",
         style=_STYLE_UPLOAD_BUTTON,
-        color="accent",
         disabled=state.in_progress
       ):
         me.icon(
           _LABEL_BUTTON_IN_PROGRESS if state.in_progress else _LABEL_BUTTON
         )
-
-@me.content_component
-def dialog(*, is_open: bool, on_click_background: Callable | None = None):
-  with me.box(
-    style=me.Style(
-      background="rgba(0, 0, 0, 0.4)"
-      if me.theme_brightness() == "light"
-      else "rgba(255, 255, 255, 0.4)",
-      display="block" if is_open else "none",
-      height="100%",
-      overflow_x="scroll",
-      overflow_y="scroll",
-      position="fixed",
-      width="100%",
-      z_index=1000,
-    ),
-  ):
-    with me.box(
-      on_click=on_click_background,
-      style=me.Style(
-        place_items="center",
-        display="grid",
-        height="100vh",
-      ),
-    ):
-      with me.box(
-        style=me.Style(
-          background=me.theme_var("surface-container-lowest"),
-          border_radius=20,
-          box_sizing="content-box",
-          # box_shadow=(
-          #   "0 3px 1px -2px #0003, 0 2px 2px #00000024, 0 1px 5px #0000001f"
-          # ),
-          margin=me.Margin.symmetric(vertical="0", horizontal="auto"),
-          padding=me.Padding.all(20),
-        )
-      ):
-        me.slot()
-
-@me.content_component
-def dialog_actions():
-  """Helper component for rendering action buttons so they are right aligned.
-
-  This component is optional. If you want to position action buttons differently,
-  you can just write your own Mesop markup.
-  """
-  with me.box(
-    style=me.Style(
-      display="flex", justify_content="end", gap=5, margin=me.Margin(top=20)
-    )
-  ):
-    me.slot()
