@@ -1,8 +1,7 @@
 import time
+import mesop as me
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, Any, Callable, Generator, Literal
-
-import mesop as me
 
 Role = Literal["user", "assistant"]
 ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf","video/mp4"]
@@ -309,15 +308,19 @@ def display_helper_buttons(message, message_index):
           style=me.Style(
             overflow_y="auto",
             max_height="360px",
+            max_width="720px",
             background=me.theme_var("surface"),
             border_radius=10,
             padding=me.Padding.all(10),
             font_family="monospace",
             font_size="14px",
             white_space="pre-wrap",
+            word_wrap="break-word"
           )
         ):
-          me.markdown("```"+message.diagnostic_info)
+          me.markdown(message.diagnostic_info)
+          # TODO: Add a copy button or use markdown for code
+          # me.markdown("```json"+message.diagnostic_info+"```")
         with dialog_actions():
           me.button("Close", on_click=on_click_close_dialog)
       with me.content_button(type="icon",on_click=on_click_dialog_open, key=dialog_id):
