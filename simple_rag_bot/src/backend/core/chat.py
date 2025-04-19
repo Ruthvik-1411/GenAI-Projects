@@ -22,6 +22,11 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+def add_step(current_steps, new_steps):
+    if not isinstance(new_steps, list):
+        new_steps = [new_steps]
+    return current_steps + new_steps
+
 tools = [get_relevant_docs_tool]
 class AgentState(TypedDict):
     """Class for maintaining graph state"""
@@ -32,6 +37,7 @@ class AgentState(TypedDict):
     tool_call: dict
     bot_response: str
     rewritten_query: str
+    steps: Annotated[List[str], add_step]
 
 class RAGApp():
     """Class for rag application"""
@@ -68,12 +74,14 @@ class RAGApp():
             logger.info(rewritten_query)
 
             return {
-                "rewritten_query": rewritten_query
+                "rewritten_query": rewritten_query,
+                "steps": "rewrite"
             }
         else:
             logger.info("-HISTORY NOT FOUND-")
             return {
-                "rewritten_query": None
+                "rewritten_query": None,
+                "steps": "rewrite"
             }
     
     def router(self, state):
@@ -94,7 +102,8 @@ class RAGApp():
             "messages": [response],
             "chat_messages": messages,
             "tool_call": response.tool_calls,
-            "rewritten_query": state["rewritten_query"]
+            "rewritten_query": state["rewritten_query"],
+            "steps": "router"
         }
     
     def tool_check_condition(self, state):
@@ -138,7 +147,8 @@ class RAGApp():
             "messages": [AIMessage(content=response)],
             "chat_messages": [AIMessage(content=response)],
             "bot_response": response,
-            "rewritten_query": rewritten_query
+            "rewritten_query": rewritten_query,
+            "steps": "chitchat"
         }
 
     def generate(self, state):
@@ -171,7 +181,8 @@ class RAGApp():
             "chat_messages": [AIMessage(content=response)],
             "relevant_docs": format_citations(tool_response),
             "bot_response": response,
-            "rewritten_query": rewritten_query
+            "rewritten_query": rewritten_query,
+            "steps": "generate"
         }
     
     def _build_workflow_graph(self):
@@ -208,11 +219,12 @@ class RAGApp():
         """Create session to chat with the graph"""
         user_input = {
             "messages": [HumanMessage(content=query)],
-            "chat_history": chat_history
+            "chat_history": chat_history,
+            "steps": []
         }
 
         graph_response = self.graph.invoke(user_input)
-
+        print(f"STEPS: {graph_response.get('steps')}")
         return graph_response.get("bot_response"), graph_response.get("relevant_docs")
 
     def generate_rag_response(self, input: str, history: list=[]):
@@ -232,12 +244,12 @@ class RAGApp():
                     "type": "citations",
                     "citations": citations
                 },
-                "diagnostic_info": "Sample info"
+                "diagnostic_info": "import mesop as me"
             }
         else:
             response = {
                 "message": bot_response,
-                "diagnostic_info": "Sample info"
+                "diagnostic_info": """{"step1": "router", "stpe2": "generate"}"""
             }
         return response
 
