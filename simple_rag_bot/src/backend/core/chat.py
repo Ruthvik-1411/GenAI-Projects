@@ -22,6 +22,11 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+def add_step(current_steps, new_steps):
+    if not isinstance(new_steps, list):
+        new_steps = [new_steps]
+    return current_steps + new_steps
+
 tools = [get_relevant_docs_tool]
 class AgentState(TypedDict):
     """Class for maintaining graph state"""
@@ -32,6 +37,7 @@ class AgentState(TypedDict):
     tool_call: dict
     bot_response: str
     rewritten_query: str
+    steps: Annotated[List[dict], add_step] #should stick to normalized format instead of dict
 
 class RAGApp():
     """Class for rag application"""
@@ -58,22 +64,44 @@ class RAGApp():
         rewritten_query = ""
         chat_history = state["chat_history"]
 
+        step_trace = {
+            "NODE": "REWRITE"
+        }
+
         if chat_history:
+            step_trace.update({
+                "history_present": True,
+                "STEP 1": "REWRITING QUERY USING HISTORY"
+            })
             logger.info("---REWRITING USING HISTORY---")
             rewritten_query = self.rewrite_chain.invoke({
                 "chat_history": chat_history,
                 "question": user_query
             })
             logger.info("---REWRITTEN QUERY---")
+            step_trace.update({
+                "STEP 2": {
+                    "input": query_rewrite_prompt.format(chat_history=chat_history, question=user_query),
+                    "output": rewritten_query
+                },
+                "rewritten_query": rewritten_query
+            })
             logger.info(rewritten_query)
 
             return {
-                "rewritten_query": rewritten_query
+                "rewritten_query": rewritten_query,
+                "steps": step_trace
             }
         else:
+            step_trace.update({
+                "history_present": False,
+                "STEP 1": "NO QUERY REWRITE",
+                "rewritten_query": None
+            })
             logger.info("-HISTORY NOT FOUND-")
             return {
-                "rewritten_query": None
+                "rewritten_query": None,
+                "steps": step_trace
             }
     
     def router(self, state):
@@ -85,16 +113,40 @@ class RAGApp():
         chat_history = state["chat_history"]
         user_query = messages[0].content
 
+        rewritten_query = state.get("rewritten_query")
+
+        step_trace = {
+            "NODE": "ROUTER",
+            "STEP 1": "USING USER QUERY",
+            "user_query": user_query
+        }
+        if rewritten_query:
+            step_trace.update({
+                "STEP 1": "USING REWRITTEN QUERY",
+                "user_query": rewritten_query
+            })
+            logger.info(f"---USING REWRITTEN QUERY---\n{rewritten_query}")
+            user_query = rewritten_query
+
         response = self.router_chain.invoke({
             "chat_history": chat_history,
             "user_query": user_query
+        })
+
+        step_trace.update({
+            "STEP 2": {
+                "input": router_prompt.format(chat_history=chat_history, user_query=user_query),
+                "output": response.content if response.content else "TOOL CALL",
+                "tool_call": response.tool_calls
+            }
         })
 
         return {
             "messages": [response],
             "chat_messages": messages,
             "tool_call": response.tool_calls,
-            "rewritten_query": state["rewritten_query"]
+            "rewritten_query": state["rewritten_query"],
+            "steps": step_trace
         }
     
     def tool_check_condition(self, state):
@@ -123,7 +175,15 @@ class RAGApp():
         user_query = messages[0].content
         logger.info(f"---QUERY---\n{user_query}")
         rewritten_query = state.get("rewritten_query")
+
+        step_trace = {
+            "NODE": "CHIT-CHAT",
+            "STEP 1": "USING ORIGINAL QUERY"
+        }
         if rewritten_query:
+            step_trace.update({
+                "STEP 1": "USING REWRITTEN QUERY"
+            })
             logger.info(f"---USING REWRITTEN QUERY---\n{rewritten_query}")
             user_query = rewritten_query
 
@@ -132,13 +192,22 @@ class RAGApp():
             "user_query": user_query
         })
 
+        step_trace.update({
+            "STEP 2": {
+                "input": chitchat_prompt.format(chat_history=chat_history, user_query=user_query),
+                "output": response
+            },
+            "FINAL RESPONSE": response
+        })
+
         logger.info(response)
 
         return {
             "messages": [AIMessage(content=response)],
             "chat_messages": [AIMessage(content=response)],
             "bot_response": response,
-            "rewritten_query": rewritten_query
+            "rewritten_query": rewritten_query,
+            "steps": step_trace
         }
 
     def generate(self, state):
@@ -152,16 +221,33 @@ class RAGApp():
         user_query = messages[0].content
         logger.info(f"---QUERY--- \n {user_query}")
         rewritten_query = state.get("rewritten_query")
+        step_trace = {
+            "NODE": "GENERATE",
+            "STEP 1": "USING ORIGINAL QUERY"
+        }
         if rewritten_query:
+            step_trace.update({
+                "STEP 1": "USING REWRITTEN QUERY"
+            })
             logger.info(f"---USING REWRITTEN QUERY---\n{rewritten_query}")
             user_query = rewritten_query
 
         sources = format_sources(tool_response)
+        step_trace.update({
+            "Retriever Results": tool_response
+        })
 
         response = self.rag_chain.invoke({
             "sources": sources,
             "user_query": user_query,
             "chat_history": chat_history
+        })
+        step_trace.update({
+            "STEP 2": {
+                "input": rag_prompt.format(sources=sources, user_query=user_query, chat_history=chat_history),
+                "output": response
+            },
+            "FINAL RESPONSE": response
         })
 
         logger.info(response)
@@ -171,7 +257,8 @@ class RAGApp():
             "chat_messages": [AIMessage(content=response)],
             "relevant_docs": format_citations(tool_response),
             "bot_response": response,
-            "rewritten_query": rewritten_query
+            "rewritten_query": rewritten_query,
+            "steps": step_trace
         }
     
     def _build_workflow_graph(self):
@@ -208,12 +295,13 @@ class RAGApp():
         """Create session to chat with the graph"""
         user_input = {
             "messages": [HumanMessage(content=query)],
-            "chat_history": chat_history
+            "chat_history": chat_history,
+            "steps": []
         }
 
         graph_response = self.graph.invoke(user_input)
 
-        return graph_response.get("bot_response"), graph_response.get("relevant_docs")
+        return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps")
 
     def generate_rag_response(self, input: str, history: list=[]):
         """Generates responses using input and history"""
@@ -223,7 +311,7 @@ class RAGApp():
         if len(history) == 1:
             history = []
         formatted_messages = format_chat_messages(history)
-        bot_response, citations = self.chat_session(input, formatted_messages)
+        bot_response, citations, diagnostic_info = self.chat_session(input, formatted_messages)
 
         if citations:
             response = {
@@ -232,12 +320,12 @@ class RAGApp():
                     "type": "citations",
                     "citations": citations
                 },
-                "diagnostic_info": "Sample info"
+                "diagnostic_info": json.dumps(diagnostic_info, indent=4)
             }
         else:
             response = {
                 "message": bot_response,
-                "diagnostic_info": "Sample info"
+                "diagnostic_info": json.dumps(diagnostic_info, indent=4)
             }
         return response
 

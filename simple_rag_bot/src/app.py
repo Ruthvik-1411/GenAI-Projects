@@ -81,7 +81,7 @@ def on_new_conversation(event: me.ClickEvent):
 def app_screen():
     with me.box(style=me.Style(
         display="grid",
-        grid_template_columns="250px 1fr",
+        grid_template_columns="250px auto",
         height="100%"
     )):
         # Left Sidebar
