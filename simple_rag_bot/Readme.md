@@ -1,12 +1,12 @@
 # Simple RAG ChatBot with Mesop UI
-A modular and simple Retrieval-Augmented Generation (RAG) chatbot, featuring a beautiful UI using Mesop and flexible orchestration powered by LangGraph. Designed for experimentation, viewing diagnostics, citeable responses and rich text elements. This is a very minimal implementation of the actual rag system, with more focus on UI and minimal rag orchestration. The idea was to make a boiler plate version, which can be further improved with agentic systems.
+A modular and simple Retrieval-Augmented Generation (RAG) chatbot, featuring a beautiful UI using Mesop and flexible orchestration powered by LangGraph. Designed for experimentation, viewing diagnostics, grounded responses with citations and rich text elements. This is a very minimal implementation of the actual rag system, with more focus on UI and minimal rag orchestration. The idea was to make a boiler plate version, which can be further improved with agentic systems.
 
 ## Features
 - Mesop UI - clean, reactive chat interface with
     - Citation chips for rag based responses.
     - Response diagnostic viewer
     - Copyable bot responses and diagnostic info for downstream tasks.
-- LLM - Gemini Models using AGoogle AI Studio
+- LLM - Gemini Models using Google AI Studio
 - Retriever - High performance semantic search using Milvus Vector DB.
 - LangGraph Orchestration:
     - Nodes: `Router`, `Rewriter`, `Generator` etc
@@ -18,7 +18,7 @@ A modular and simple Retrieval-Augmented Generation (RAG) chatbot, featuring a b
 ## Components
 
 ### Mesop
-[Mesop](https://github.com/mesop-dev/mesop) it allows building of rich UI elements using python and has a similar level of customization as one would have when building a prototype using react/angular. The [docs](https://mesop-dev.github.io/mesop/) have a lot of ready to use components, easy to modify and customizable as required. I've already built a couple of prototypes using streamlit, it is beginner friendly, but to add custom components, Mesop seemed like a good choice and I would get a chance to tryout a new framework as well.
+[Mesop](https://github.com/mesop-dev/mesop) allows building of rich UI elements using python and has a similar level of customization as one would have when building a prototype using react/angular. The [docs](https://mesop-dev.github.io/mesop/) have a lot of ready to use components, easy to modify and customizable as required. I've already built a couple of prototypes using streamlit, it is beginner friendly, but to add custom components, Mesop seemed like a good choice and I would get a chance to tryout a new framework as well.
 
 ### LLMs and Embeddings
 Google AI studio provides free access to Google's latest Gemini models with comfortable rate limits. For this workflow, i've used `gemini-2.0-flash-001`, being faster, less costly(free anyway) and suitable for this usecase. Used the `text-embedding-004` for getting embeddings during chunking and runtime.
@@ -47,7 +47,7 @@ A custom workflow was built using **Langgraph** as shown in the image below. The
 <img src="https://github.com/Ruthvik-1411/GenAI-Projects/blob/main/simple_rag_bot/assets/graph_v1.png">
 
 **Demo Video**:
-Coming Soon...
+[![Demo Video](https://github.com/Ruthvik-1411/GenAI-Projects/blob/main/simple_rag_bot/assets/demo%20frame.jpg)](https://youtu.be/u_Gm_Hi7gV4)
 
 
 ### Development
