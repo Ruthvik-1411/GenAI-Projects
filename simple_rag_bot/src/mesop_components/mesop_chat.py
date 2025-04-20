@@ -1,5 +1,6 @@
 import time
 import mesop as me
+from mesop_components.copy_to_clipboard.copy_to_clipboard_component import copy_to_clipboard_component
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, Any, Callable, Generator, Literal
 
@@ -8,12 +9,10 @@ ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf","video/mp4"]
 
 _ROLE_USER = "user"
 _ROLE_ASSISTANT = "assistant"
-
 _BOT_USER_DEFAULT = "assistant"
 
 _COLOR_BACKGROUND = me.theme_var("background")
 _COLOR_CHAT_BUBBLE_YOU = me.theme_var("surface")
-# https://m3.material.io/styles/color/roles
 _COLOR_CHAT_BUBBLE_BOT = me.theme_var("surface-container-low")
 
 _DEFAULT_PADDING = me.Padding.all(5)
@@ -247,7 +246,7 @@ def display_citations(citations):
         with me.card(appearance="raised", style=me.Style(display="inline-block",margin=me.Margin.all(2),background=me.theme_var("secondary-container"))):
             with me.box(style=me.Style(display="flex", justify_content="start", align_items="center")):
               with me.card_content():
-                # FIXME: citation url tries to navigate to page of mesop app
+                # FIXME: citation url tries to navigate to a page of mesop app
                 # local url starts with /home/user/...pdf. When opened in browser, browser opens it as file:///home/user/...pdf
                 # But when this url is displayed on UI, when opened, it opens as localhost:port/home/user/...pdf
                 # Since localhost is serving mesop and not pdf files, it's a broken url
@@ -281,7 +280,7 @@ def display_rich_elements(rich_content):
     # Display image inside a container
     pass
   elif rich_content["type"] == "chips":
-    # Display clickable mini chip that populates the input bar
+    # Display clickable mini chip that populates the input text area
     return display_chips(rich_content["chips"])
     pass
   elif rich_content["type"] == "citations":
@@ -303,7 +302,16 @@ def display_helper_buttons(message, message_index):
         is_open=(state.open_dialog_id == dialog_id),
         on_click_background=on_click_close_background,
       ):
-        me.text("Diagnostic Info", type="headline-5")
+        with me.box(style=me.Style(
+            display="flex",
+            flex_direction="row",
+            align_items="center",
+            justify_content="space-between"
+        )):
+          me.text("Diagnostic Info", type="headline-5")
+          with copy_to_clipboard_component(text=message.diagnostic_info):
+            with me.content_button(type="icon"):
+              me.icon("content_copy")
         with me.box(
           style=me.Style(
             overflow_y="auto",
@@ -325,8 +333,9 @@ def display_helper_buttons(message, message_index):
           me.button("Close", on_click=on_click_close_dialog)
       with me.content_button(type="icon",on_click=on_click_dialog_open, key=dialog_id):
         me.icon("assignment")
-      with me.content_button(type="icon"):
-        me.icon("content_copy")
+      with copy_to_clipboard_component(text=message.content):
+        with me.content_button(type="icon"):
+          me.icon("content_copy")
 
 def chat(
   transform: Callable[

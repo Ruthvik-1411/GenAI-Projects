@@ -1,7 +1,7 @@
 from enum import Enum
 import mesop as me
 # import mesop.labs as mel
-from mesop_chat import chat
+from mesop_components.mesop_chat import chat
 from backend.core.chat import RAGApp
 from backend.config import GEMINI_API_KEY
 
@@ -77,7 +77,12 @@ def on_new_conversation(event: me.ClickEvent):
          title="Simple RAG App",
          stylesheets=[
              "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
-         ])
+         ],
+         security_policy=me.SecurityPolicy(
+            allowed_script_srcs=[
+                "https://cdn.jsdelivr.net",
+                ])
+        )
 def app_screen():
     with me.box(style=me.Style(
         display="grid",
