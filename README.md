@@ -4,7 +4,7 @@ List of projects/ideas I plan to implement:
 - ChatBots
   - [x] Basic ChatBot (Text inputs)
   - [x] Basic ChatBot (Multimodal inputs)
-  - [ ] RAG Based ChatBot (simple data) [In Progress]()
+  - [x] RAG Based ChatBot (simple data)
   - [ ] RAG Based ChatBot (Complex datasets, using different techniques)
 - NL2SQL
   - [ ] Basic NL2SQL Bot on simple data. (Use existing expense data for CY24)
