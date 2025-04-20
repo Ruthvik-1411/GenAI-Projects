@@ -31,21 +31,22 @@ One issue I've faced down the line when using Milvus (which was my mistake entir
 ### LangChain and LangGraph
 Used LangChain for document chunking and LangGraph for the workflow orchestration. 
 
-Langchain text splitters support a lot of file formats and chunking strategies. To keep the implementation simple, I've used a small corpus of 7 pdfs covering three topics: Agents & LLMs, Recipes and Climate changed. A relatively smaller sample to build a minimal workflow.
+**Langchain** text splitters support a lot of file formats and chunking strategies. To keep the implementation simple, I've used a small corpus of 7 pdfs covering three topics: Agents & LLMs, Recipes and Climate changed. A relatively smaller sample to build a minimal workflow.
 - Used `Recursive text splitter` with some text cleaning to chunk the documents.
 - Added page metadata during text splitting, to retain chunk metadata such as page index and character index for each chunk.
 - Created an embeddings file for all created chunks to be used later.(Added rate limits to avoid quota errors while generating embeddings)
 
-A custom workflow was built using Langgraph as shown in the image below. The workflow mainly follows these steps:
+A custom workflow was built using **Langgraph** as shown in the image below. The workflow mainly follows these steps:
 - `Query rewrite`: All user queries are rewritten based on chat history to be standalone. If not related to history, they are returned as is. This ensure that the downstream modules can work with the standlone query.
 - `Router`: LLM with retriever tool is made to decide if the query requires usage of tool or it's a simple chit-chat.
 - `Chit-Chat`: This node handles simple greetings and chitchat, router node routes the workflow to this node to handle such queries.
 - `Generate`: Router routes to generate node after making a tool call and getting relevant sources. This node generate a response to user query based on retrieved sources and chat history.
 
-Implementation workflow:
+**Implementation workflow**:
+
 <img src="https://github.com/Ruthvik-1411/GenAI-Projects/blob/main/simple_rag_bot/assets/graph_v1.png">
 
-Demo Video:
+**Demo Video**:
 Coming Soon...
 
 
