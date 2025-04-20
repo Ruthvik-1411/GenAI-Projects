@@ -1,5 +1,5 @@
 # Simple RAG ChatBot with Mesop UI
-A modular and simple Retrieval-Augmented Generation (RAG) chatbot, featuring a beautiful UI using Mesop and flexible orchestration powered by LangGraph. Designed for experimentation, viewing diagnostics, citeable responses and rich text elements. This is a very minimal implementation of the actual rag system, with more focus on UI and minimal rag orchestration. The idea was to make a boiler plate version, which can be further improved with agentic systems.
+A modular and simple Retrieval-Augmented Generation (RAG) chatbot, featuring a beautiful UI using Mesop and flexible orchestration powered by LangGraph. Designed for experimentation, viewing diagnostics, grounded responses with citations and rich text elements. This is a very minimal implementation of the actual rag system, with more focus on UI and minimal rag orchestration. The idea was to make a boiler plate version, which can be further improved with agentic systems.
 
 ## Features
 - Mesop UI - clean, reactive chat interface with
@@ -47,7 +47,7 @@ A custom workflow was built using **Langgraph** as shown in the image below. The
 <img src="https://github.com/Ruthvik-1411/GenAI-Projects/blob/main/simple_rag_bot/assets/graph_v1.png">
 
 **Demo Video**:
-Coming Soon...
+[![Demo Video](https://github.com/Ruthvik-1411/GenAI-Projects/blob/main/simple_rag_bot/assets/demo%20frame.jpg)](https://youtu.be/u_Gm_Hi7gV4)
 
 
 ### Development
