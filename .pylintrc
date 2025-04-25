@@ -1,0 +1,21 @@
+[MASTER]
+# Files and directories to ignore (comma separated)
+ignore=assets, notebooks, documents
+
+[MESSAGES CONTROL]
+# Disable the following messages
+disable=
+    R0903,  # too-few-public-methods
+    R0913,  # too-many-arguments
+    W0611,  # unused-import
+    W0613,  # unused-argument
+    E0401,  # import-error
+    E1101,  # no-member
+    R0801,  # similar lines in multiple files
+    W0718,  # broad-exception-caught
+    W1514,  # unspecified-encoding
+    W0613,  # unused-argument
+
+[FORMAT]
+# Max line length
+max-line-length=80
