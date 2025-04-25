@@ -1,3 +1,5 @@
+"""Prompts file"""
+# pylint: disable=line-too-long, invalid-name
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate, MessagesPlaceholder
 
 router_template = """You are a helpful assitant whose purpose is to help users with their queries.
@@ -38,7 +40,7 @@ chitchat_prompt = ChatPromptTemplate.from_messages([
     ("user", "{user_query}"),
 ])
 
-# TODO: Improve the rewrite prompt, make it concise
+# FIXME: Improve the rewrite prompt, make it concise
 query_rewrite_template = """Given the following conversation history and user followup question, rephrase the user query to be a standalone question.
 The rephrased question should be understood without the chat history and should be meaningful and complete on its own.
 Make sure that the rephrased question has all the details to be complete on it's own.

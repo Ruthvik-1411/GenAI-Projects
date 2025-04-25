@@ -1,8 +1,9 @@
-import time
+"""Components for mesop chat box"""
+# import time
 import mesop as me
-from mesop_components.copy_to_clipboard.copy_to_clipboard_component import copy_to_clipboard_component
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, Any, Callable, Generator, Literal
+from mesop_components.copy_to_clipboard.copy_to_clipboard_component import copy_to_clipboard_component
 
 Role = Literal["user", "assistant"]
 ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf","video/mp4"]

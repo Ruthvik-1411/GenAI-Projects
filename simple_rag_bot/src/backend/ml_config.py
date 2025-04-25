@@ -1,3 +1,5 @@
+"""Configs variables related to llms and ml logic"""
+
 LLM_CONFIGS = {
     "gemini-1.5-flash": {
         "model": "gemini-1.5-flash-002",

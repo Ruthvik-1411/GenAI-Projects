@@ -1,18 +1,18 @@
-# File to setup data and vector db initially
+"""File to setup data and vector db initially"""
 
-from utils.utility import get_files_in_dir, save_embeddings, load_embeddings
-from core.chunking import PDFTextSplitter
-from core.embedding import EmbeddingClient
-from core.retriever import CustomMilvusClient
-from config import GEMINI_API_KEY
+from backend.utils.utility import get_files_in_dir, save_embeddings, load_embeddings
+from backend.core.chunking import PDFTextSplitter
+from backend.core.embedding import EmbeddingClient
+from backend.core.retriever import CustomMilvusClient
+from backend.config import GEMINI_API_KEY
 
 ### --- SETUP ----
 def initial_setup():
-    
+    """Initial setup of chunking and embedding of docs"""
     documents_list = get_files_in_dir("../../documents")
 
     def generate_chunks_and_embeddings(files_list, folder_name):
-        
+
         document_splitter = PDFTextSplitter(files_list)
 
         chunked_data = document_splitter.process_documents()
@@ -30,25 +30,25 @@ def initial_setup():
 
         return f"{folder_name}/embeddings.jsonl"
 
-    embedding_data_path = generate_chunks_and_embeddings(documents_list, "local_db")
+    embedding_data_path = generate_chunks_and_embeddings(documents_list, "local_db") # pylint: disable=W0612
 
     embeddings_data = load_embeddings("local_db/embeddings.jsonl")
 
     def create_vector_db(embeddings_data: list, folder_name: str, db_name: str, collection_name: str):
-        
+
         retriever_instance = CustomMilvusClient(uri=f"{folder_name}/{db_name}.db")
 
         retriever_instance.create_collection(collection_name=collection_name,
                                             embedding_dimension=768,
                                             vector_field_name="chunk_embedding",
                                             primary_field_name="chunk_id")
-        
+
         retriever_instance.insert_data_to_collection(collection_name=collection_name,
                                                     data=embeddings_data)
-        
+
         return f"{folder_name}/{db_name}.db", collection_name
 
-    milvus_db, milvus_collection = create_vector_db(embeddings_data,
+    milvus_db, milvus_collection = create_vector_db(embeddings_data, # pylint: disable=W0612
                                                     folder_name="local_db",
                                                     db_name="local_milvus",
                                                     collection_name="local_pdf_rag")
@@ -57,11 +57,12 @@ def initial_setup():
 
 ### --- TESTING Vector DB ---
 def run_test():
+    """Testing the connection to vector db and embeddings"""
     def test_vector_db(milvus_db, milvus_collection, query):
 
         retriever_instance = CustomMilvusClient(uri=milvus_db)
         embedding_instance = EmbeddingClient(embedding_api_key=GEMINI_API_KEY)
-        
+
         query_embedding = embedding_instance.get_query_embeddings(content=query)
 
         docs = retriever_instance.query_collection(collection_name=milvus_collection,
