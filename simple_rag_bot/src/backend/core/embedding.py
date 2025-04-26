@@ -31,11 +31,11 @@ class EmbeddingClient:
             chunk_content = chunk["content"]
             chunk_embedding = self._generate_embedding(chunk_content)
             chunk["chunk_embedding"] = chunk_embedding
-        
+
         return embeddings_data
 
     def get_query_embeddings(self, content: str):
         """Generate embeddings for query during runtime"""
         query_embedding = self.embedding_instance.embed_query(text=content)
-       
+
         return query_embedding

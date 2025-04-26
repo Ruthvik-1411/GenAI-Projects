@@ -274,12 +274,12 @@ def display_citations(citations):
                 ):
                     with me.card_content():
                         # FIXME: citation url tries to navigate to a page of mesop app
-                        # local url starts with /home/user/...pdf. When opened in browser, browser opens it 
-                        # as file:///home/user/...pdf
-                        # But when this url is displayed on UI, when opened, it opens 
+                        # local url starts with /home/user/...pdf. When opened in browser, 
+                        # browser opens it as file:///home/user/...pdf
+                        # But when this url is displayed on UI, when opened, it opens
                         # as localhost:port/home/user/...pdf
                         # Since localhost is serving mesop and not pdf files, it's a broken url
-                        # HOTFIX: serve the document/ folder as python http server and 
+                        # HOTFIX: serve the document/ folder as python http server and
                         # replace the url to hit this server.
                         me.link(
                             text=citation["title"],
@@ -288,7 +288,11 @@ def display_citations(citations):
                             url="http://0.0.0.0:8000/"+citation["url"].split("/")[-1],
                             style=me.Style(color=me.theme_var("tertiary"), text_decoration="none"),
                         )
-                    me.icon(icon="open_in_new",style=me.Style(margin=me.Margin(right=2, top=7), font_size=20))
+                    me.icon(icon="open_in_new",
+                            style=me.Style(
+                                margin=me.Margin(right=2, top=7),
+                                font_size=20)
+                            )
 
 def display_chips(chips):
     """Display chip buttons to auto populate chip text in input area"""
@@ -309,17 +313,16 @@ def display_rich_elements(rich_content):
     if rich_content["type"] == "file":
         # Display file name card
         return None
-    elif rich_content["type"] == "image":
+    if rich_content["type"] == "image":
         # Display image inside a container
         return None
-    elif rich_content["type"] == "chips":
+    if rich_content["type"] == "chips":
         # Display clickable mini chip that populates the input text area
         return display_chips(rich_content["chips"])
-    elif rich_content["type"] == "citations":
+    if rich_content["type"] == "citations":
         # Display clickable card that opens a link in new page
         return display_citations(rich_content["citations"])
-    else:
-        return None
+    return None
 
 def display_helper_buttons(message, message_index):
     """Display helper buttons, copy and diagnostic info"""
@@ -369,7 +372,7 @@ def display_helper_buttons(message, message_index):
             with me.content_button(type="icon"):
                 me.icon("content_copy")
 
-def chat(
+def chat( # pylint: disable=R0915
   transform: Callable[
     [str, list[ChatMessage]],
     Generator[str, None, None] | str
@@ -384,11 +387,11 @@ def chat(
 
     This function creates event handlers for text input and output operations
     using the provided function `transform` to process the input and generate the output.
-
     Args:
-        transform: Function that takes in a prompt and chat history and returns a response to the prompt.
+        transform: Function that takes in a prompt and chat history and 
+        returns a response to the prompt.
         title: Headline text to display at the top of the UI.
-        bot_user: Name of your bot / assistant
+        bot_user: Name of your bo   t / assistant
         reset: Reset chat box.
     """
     state = me.state(State)
@@ -458,15 +461,13 @@ def chat(
         if title:
             with me.box(
                 style=me.Style(
-                display="flex", flex_direction="row",justify_content= "center", margin=me.Margin(right=10),
+                display="flex",
+                flex_direction="row",
+                justify_content= "center",
+                margin=me.Margin(right=10),
             )):
                 me.text(title, type="headline-3", style=_STYLE_TITLE)
                 # TODO: Make title as linear gradient
-                # me.html(html=f"""
-                #         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-                #         <h3 style='background: linear-gradient(90deg, #5E60CE 0%, #FF6B6B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; font-family: Inter; font-size: 30px; white-space: nowrap;'>
-                #         {title}</h3>""",
-                #         mode="sandboxed")
                 with me.content_button(
                     type="icon",
                     style=me.Style(margin=me.Margin(top=6)),
