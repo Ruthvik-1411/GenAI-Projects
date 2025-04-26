@@ -1,3 +1,4 @@
+"""Main logic for chat with rag bot"""
 import json
 import logging
 from typing import List, Annotated, Sequence
@@ -5,9 +6,7 @@ from typing_extensions import TypedDict
 from backend.core.prompts import router_prompt,rag_prompt, query_rewrite_prompt, chitchat_prompt
 from backend.core.tools import get_relevant_docs_tool
 from backend.ml_config import LLM_CONFIGS
-
 from backend.utils.utility import format_sources, format_citations, format_chat_messages
-
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
@@ -23,6 +22,7 @@ logging.basicConfig(
 )
 
 def add_step(current_steps, new_steps):
+    """Appends 'step' key with previous steps to the state"""
     if not isinstance(new_steps, list):
         new_steps = [new_steps]
     return current_steps + new_steps
@@ -45,7 +45,8 @@ class RAGApp():
         logger.info("Initializing rag app...")
         self.gemini_api_key = params.get("gemini_api_key")
         self.model_key = params.get("model")
-        self.chat_model = ChatGoogleGenerativeAI(**LLM_CONFIGS[self.model_key],google_api_key=self.gemini_api_key)
+        self.chat_model = ChatGoogleGenerativeAI(**LLM_CONFIGS[self.model_key],
+                                                 google_api_key=self.gemini_api_key)
 
         self.rag_chain = rag_prompt | self.chat_model | StrOutputParser()
         self.rewrite_chain = query_rewrite_prompt | self.chat_model | StrOutputParser()
@@ -53,7 +54,7 @@ class RAGApp():
         self.router_chain = router_prompt | self.chat_model.bind_tools(tools)
 
         self.graph = self._build_workflow_graph()
-    
+
     def rewrite(self, state):
         """Rewrite query based on chat history"""
 
@@ -81,7 +82,8 @@ class RAGApp():
             logger.info("---REWRITTEN QUERY---")
             step_trace.update({
                 "STEP 2": {
-                    "input": query_rewrite_prompt.format(chat_history=chat_history, question=user_query),
+                    "input": query_rewrite_prompt.format(chat_history=chat_history,
+                                                         question=user_query),
                     "output": rewritten_query
                 },
                 "rewritten_query": rewritten_query
@@ -92,18 +94,18 @@ class RAGApp():
                 "rewritten_query": rewritten_query,
                 "steps": step_trace
             }
-        else:
-            step_trace.update({
-                "history_present": False,
-                "STEP 1": "NO QUERY REWRITE",
-                "rewritten_query": None
-            })
-            logger.info("-HISTORY NOT FOUND-")
-            return {
-                "rewritten_query": None,
-                "steps": step_trace
-            }
-    
+
+        step_trace.update({
+            "history_present": False,
+            "STEP 1": "NO QUERY REWRITE",
+            "rewritten_query": None
+        })
+        logger.info("-HISTORY NOT FOUND-")
+        return {
+            "rewritten_query": None,
+            "steps": step_trace
+        }
+
     def router(self, state):
         """Call router to decide which tool to user"""
 
@@ -135,7 +137,8 @@ class RAGApp():
 
         step_trace.update({
             "STEP 2": {
-                "input": router_prompt.format(chat_history=chat_history, user_query=user_query),
+                "input": router_prompt.format(chat_history=chat_history,
+                                              user_query=user_query),
                 "output": response.content if response.content else "TOOL CALL",
                 "tool_call": response.tool_calls
             }
@@ -148,10 +151,10 @@ class RAGApp():
             "rewritten_query": state["rewritten_query"],
             "steps": step_trace
         }
-    
+
     def tool_check_condition(self, state):
         """Checks tool call and routes to next layer"""
-        
+
         logger.info("---CHECK TOOL CALL---")
         logger.info(state["tool_call"])
 
@@ -159,12 +162,11 @@ class RAGApp():
             for tool_call in state.get("tool_call"):
                 if tool_call.get("name") == "get_relevant_docs_tool":
                     return "retrieve_tool"
-                elif tool_call.get("name") == "other_tool":
+                if tool_call.get("name") == "other_tool":
                     #should modify graph accordingly
                     return "other_tool"
-        else:
-            return "chit_chat"
-    
+        return "chit_chat"
+
     def chit_chat(self, state):
         """Handle chit chat"""
 
@@ -194,7 +196,8 @@ class RAGApp():
 
         step_trace.update({
             "STEP 2": {
-                "input": chitchat_prompt.format(chat_history=chat_history, user_query=user_query),
+                "input": chitchat_prompt.format(chat_history=chat_history,
+                                                user_query=user_query),
                 "output": response
             },
             "FINAL RESPONSE": response
@@ -244,7 +247,9 @@ class RAGApp():
         })
         step_trace.update({
             "STEP 2": {
-                "input": rag_prompt.format(sources=sources, user_query=user_query, chat_history=chat_history),
+                "input": rag_prompt.format(sources=sources,
+                                           user_query=user_query,
+                                           chat_history=chat_history),
                 "output": response
             },
             "FINAL RESPONSE": response
@@ -260,7 +265,7 @@ class RAGApp():
             "rewritten_query": rewritten_query,
             "steps": step_trace
         }
-    
+
     def _build_workflow_graph(self):
         """Build graph"""
         workflow = StateGraph(AgentState)
@@ -301,17 +306,17 @@ class RAGApp():
 
         graph_response = self.graph.invoke(user_input)
 
-        return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps")
+        return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps") # pylint: disable=line-too-long
 
-    def generate_rag_response(self, input: str, history: list=[]):
+    def generate_rag_response(self, user_input: str, history: list):
         """Generates responses using input and history"""
-        
+
         # mesop_chat adds user message to the history for 1st message.
         # Chat history should be added after completion of turn, so ignoring first addition.
         if len(history) == 1:
             history = []
         formatted_messages = format_chat_messages(history)
-        bot_response, citations, diagnostic_info = self.chat_session(input, formatted_messages)
+        bot_response, citations, diagnostic_info = self.chat_session(user_input, formatted_messages)
 
         if citations:
             response = {
@@ -329,11 +334,11 @@ class RAGApp():
             }
         return response
 
-def generate_response(input: str, history: list=[]):
+def generate_response(user_input: str, history: list):
     """Testing function"""
-    if "citations" in input:
+    if "citations" in user_input:
         response = {
-            "message": f"Echo: {input}",
+            "message": f"Echo: {user_input}",
             "rich_content": {
             "type": "citations",
             "citations": [
@@ -348,9 +353,9 @@ def generate_response(input: str, history: list=[]):
             ]
             }
         }
-    elif "chip" in input:
+    elif "chip" in user_input:
         response = {
-            "message": f"Echo: {input}",
+            "message": f"Echo: {user_input}",
             "rich_content": {
             "type": "chips",
             "chips": [
@@ -365,7 +370,7 @@ def generate_response(input: str, history: list=[]):
         }
     else:
         response = {
-            "message": f"Echo: {input}"
+            "message": f"Echo: {user_input}"
         }
-    
+
     return response
