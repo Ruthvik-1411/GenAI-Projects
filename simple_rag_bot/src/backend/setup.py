@@ -12,7 +12,7 @@ def initial_setup():
     documents_list = get_files_in_dir("../../documents")
 
     def generate_chunks_and_embeddings(files_list, folder_name):
-
+        """Generates chunks and embeddings for the local files"""
         document_splitter = PDFTextSplitter(files_list)
 
         chunked_data = document_splitter.process_documents()
@@ -35,7 +35,7 @@ def initial_setup():
     embeddings_data = load_embeddings("local_db/embeddings.jsonl")
 
     def create_vector_db(embeddings_data: list, folder_name: str, db_name: str, collection_name: str):
-
+        """Creates vector db with provied embeddings"""
         retriever_instance = CustomMilvusClient(uri=f"{folder_name}/{db_name}.db")
 
         retriever_instance.create_collection(collection_name=collection_name,

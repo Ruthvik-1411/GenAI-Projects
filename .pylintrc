@@ -14,8 +14,8 @@ disable=
     R0801,  # similar lines in multiple files
     W0718,  # broad-exception-caught
     W1514,  # unspecified-encoding
-    W0613,  # unused-argument
+    W1203,  # logging-fstring-interpolation
 
 [FORMAT]
 # Max line length
-max-line-length=80
+max-line-length=100

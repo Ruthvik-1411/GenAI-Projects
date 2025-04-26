@@ -1,3 +1,4 @@
+"""Main logic for chat with rag bot"""
 import json
 import logging
 from typing import List, Annotated, Sequence
@@ -23,6 +24,7 @@ logging.basicConfig(
 )
 
 def add_step(current_steps, new_steps):
+    """Appends 'step' key with previous steps to the state"""
     if not isinstance(new_steps, list):
         new_steps = [new_steps]
     return current_steps + new_steps
@@ -53,7 +55,7 @@ class RAGApp():
         self.router_chain = router_prompt | self.chat_model.bind_tools(tools)
 
         self.graph = self._build_workflow_graph()
-    
+
     def rewrite(self, state):
         """Rewrite query based on chat history"""
 
@@ -92,18 +94,18 @@ class RAGApp():
                 "rewritten_query": rewritten_query,
                 "steps": step_trace
             }
-        else:
-            step_trace.update({
-                "history_present": False,
-                "STEP 1": "NO QUERY REWRITE",
-                "rewritten_query": None
-            })
-            logger.info("-HISTORY NOT FOUND-")
-            return {
-                "rewritten_query": None,
-                "steps": step_trace
-            }
-    
+
+        step_trace.update({
+            "history_present": False,
+            "STEP 1": "NO QUERY REWRITE",
+            "rewritten_query": None
+        })
+        logger.info("-HISTORY NOT FOUND-")
+        return {
+            "rewritten_query": None,
+            "steps": step_trace
+        }
+
     def router(self, state):
         """Call router to decide which tool to user"""
 
@@ -148,10 +150,10 @@ class RAGApp():
             "rewritten_query": state["rewritten_query"],
             "steps": step_trace
         }
-    
+
     def tool_check_condition(self, state):
         """Checks tool call and routes to next layer"""
-        
+
         logger.info("---CHECK TOOL CALL---")
         logger.info(state["tool_call"])
 
@@ -164,7 +166,7 @@ class RAGApp():
                     return "other_tool"
         else:
             return "chit_chat"
-    
+
     def chit_chat(self, state):
         """Handle chit chat"""
 
@@ -260,7 +262,7 @@ class RAGApp():
             "rewritten_query": rewritten_query,
             "steps": step_trace
         }
-    
+
     def _build_workflow_graph(self):
         """Build graph"""
         workflow = StateGraph(AgentState)
@@ -303,9 +305,9 @@ class RAGApp():
 
         return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps")
 
-    def generate_rag_response(self, input: str, history: list=[]):
+    def generate_rag_response(self, input: str, history: list):
         """Generates responses using input and history"""
-        
+
         # mesop_chat adds user message to the history for 1st message.
         # Chat history should be added after completion of turn, so ignoring first addition.
         if len(history) == 1:
@@ -367,5 +369,5 @@ def generate_response(input: str, history: list=[]):
         response = {
             "message": f"Echo: {input}"
         }
-    
+
     return response
