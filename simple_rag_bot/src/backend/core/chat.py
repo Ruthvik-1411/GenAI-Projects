@@ -6,9 +6,7 @@ from typing_extensions import TypedDict
 from backend.core.prompts import router_prompt,rag_prompt, query_rewrite_prompt, chitchat_prompt
 from backend.core.tools import get_relevant_docs_tool
 from backend.ml_config import LLM_CONFIGS
-
 from backend.utils.utility import format_sources, format_citations, format_chat_messages
-
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
@@ -47,7 +45,8 @@ class RAGApp():
         logger.info("Initializing rag app...")
         self.gemini_api_key = params.get("gemini_api_key")
         self.model_key = params.get("model")
-        self.chat_model = ChatGoogleGenerativeAI(**LLM_CONFIGS[self.model_key],google_api_key=self.gemini_api_key)
+        self.chat_model = ChatGoogleGenerativeAI(**LLM_CONFIGS[self.model_key],
+                                                 google_api_key=self.gemini_api_key)
 
         self.rag_chain = rag_prompt | self.chat_model | StrOutputParser()
         self.rewrite_chain = query_rewrite_prompt | self.chat_model | StrOutputParser()
@@ -83,7 +82,8 @@ class RAGApp():
             logger.info("---REWRITTEN QUERY---")
             step_trace.update({
                 "STEP 2": {
-                    "input": query_rewrite_prompt.format(chat_history=chat_history, question=user_query),
+                    "input": query_rewrite_prompt.format(chat_history=chat_history,
+                                                         question=user_query),
                     "output": rewritten_query
                 },
                 "rewritten_query": rewritten_query
@@ -137,7 +137,8 @@ class RAGApp():
 
         step_trace.update({
             "STEP 2": {
-                "input": router_prompt.format(chat_history=chat_history, user_query=user_query),
+                "input": router_prompt.format(chat_history=chat_history,
+                                              user_query=user_query),
                 "output": response.content if response.content else "TOOL CALL",
                 "tool_call": response.tool_calls
             }
@@ -161,11 +162,10 @@ class RAGApp():
             for tool_call in state.get("tool_call"):
                 if tool_call.get("name") == "get_relevant_docs_tool":
                     return "retrieve_tool"
-                elif tool_call.get("name") == "other_tool":
+                if tool_call.get("name") == "other_tool":
                     #should modify graph accordingly
                     return "other_tool"
-        else:
-            return "chit_chat"
+        return "chit_chat"
 
     def chit_chat(self, state):
         """Handle chit chat"""
@@ -196,7 +196,8 @@ class RAGApp():
 
         step_trace.update({
             "STEP 2": {
-                "input": chitchat_prompt.format(chat_history=chat_history, user_query=user_query),
+                "input": chitchat_prompt.format(chat_history=chat_history,
+                                                user_query=user_query),
                 "output": response
             },
             "FINAL RESPONSE": response
@@ -246,7 +247,9 @@ class RAGApp():
         })
         step_trace.update({
             "STEP 2": {
-                "input": rag_prompt.format(sources=sources, user_query=user_query, chat_history=chat_history),
+                "input": rag_prompt.format(sources=sources,
+                                           user_query=user_query,
+                                           chat_history=chat_history),
                 "output": response
             },
             "FINAL RESPONSE": response
@@ -303,7 +306,7 @@ class RAGApp():
 
         graph_response = self.graph.invoke(user_input)
 
-        return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps")
+        return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps") #pylint : disable=C0301
 
     def generate_rag_response(self, input: str, history: list):
         """Generates responses using input and history"""
@@ -331,7 +334,7 @@ class RAGApp():
             }
         return response
 
-def generate_response(input: str, history: list=[]):
+def generate_response(input: str, history: list):
     """Testing function"""
     if "citations" in input:
         response = {

@@ -15,13 +15,17 @@ def get_relevant_docs(collection_name: str, query: str, top_n: int=3):
     docs = retriever_instance.query_collection(collection_name=collection_name,
                                                 query_embedding=query_embedding,
                                                 limit=top_n,
-                                                output_fields=["content", "page_span","document_metadata"])
+                                                output_fields=["content",
+                                                               "page_span",
+                                                               "document_metadata"]
+                                                )
 
     return docs
 
 @tool
 def get_relevant_docs_tool(query: str) -> list:
-    """Utilize this function if user asks any questions related to climate change, recipes and LLMs terminology.
+    """Utilize this function if user asks any questions related to climate change, 
+    recipes and LLMs terminology.
     This tool searches and return information about recipes, LLM terminology and climate change.
     For all user questions, utlize this tool to get relevant sources for answering user query.
     Args:

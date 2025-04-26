@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, Any, Callable, Generator, Literal
 import mesop as me
-from mesop_components.copy_to_clipboard.copy_to_clipboard_component import copy_to_clipboard_component
+from mesop_components.copy_to_clipboard.copy_to_clipboard_component import copy_to_clipboard_component # pylint: disable=C0301
 
 Role = Literal["user", "assistant"]
 ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf","video/mp4"]
@@ -103,7 +103,7 @@ def _make_chat_bubble_icon_style(role: Role) -> me.Style:
         role: Chat bubble background color depends on the role
     """
     background = (
-    _COLOR_CHAT_MESSAGE_ICON_BACKGROUND_YOU if role == _ROLE_USER else _COLOR_CHAT_MESSAGE_ICON_BACKGROUND_BOT
+    _COLOR_CHAT_MESSAGE_ICON_BACKGROUND_YOU if role == _ROLE_USER else _COLOR_CHAT_MESSAGE_ICON_BACKGROUND_BOT # pylint: disable=C0301
     )
     return me.Style(
         background=background,
@@ -249,7 +249,7 @@ def dialog_actions():
         style=me.Style(
             display="flex",
             justify_content="end",
-            gap=5, 
+            gap=5,
             margin=me.Margin(top=20)
         )
     ):
@@ -258,9 +258,19 @@ def dialog_actions():
 def display_citations(citations):
     """Display citations on chat box"""
     with me.box(style=me.Style(display="flex", justify_content="flex-start")):
-        for i in range(len(citations)):
-            with me.card(appearance="raised", style=me.Style(display="inline-block",margin=me.Margin.all(2),background=me.theme_var("secondary-container"))):
-                with me.box(style=me.Style(display="flex", justify_content="start", align_items="center")):
+        for i, citation in enumerate(citations):
+            with me.card(appearance="raised",
+                         style=me.Style(
+                             display="inline-block",
+                             margin=me.Margin.all(2),
+                             background=me.theme_var("secondary-container")
+                        )
+            ):
+                with me.box(style=me.Style(
+                    display="flex",
+                    justify_content="start",
+                    align_items="center")
+                ):
                     with me.card_content():
                         # FIXME: citation url tries to navigate to a page of mesop app
                         # local url starts with /home/user/...pdf. When opened in browser, browser opens it as file:///home/user/...pdf
@@ -268,10 +278,10 @@ def display_citations(citations):
                         # Since localhost is serving mesop and not pdf files, it's a broken url
                         # HOTFIX: serve the document/ folder as python http server and replace the url to hit this server.
                         me.link(
-                            text=citations[i]["title"],
+                            text=citation["title"],
                             open_in_new_tab=True,
                             # url=citations[i]["url"],
-                            url="http://0.0.0.0:8000/"+citations[i]["url"].split("/")[-1],
+                            url="http://0.0.0.0:8000/"+citation["url"].split("/")[-1],
                             style=me.Style(color=me.theme_var("tertiary"), text_decoration="none"),
                         )
                     me.icon(icon="open_in_new",style=me.Style(margin=me.Margin(right=2, top=7), font_size=20))
@@ -279,16 +289,16 @@ def display_citations(citations):
 def display_chips(chips):
     """Display chip buttons to auto populate chip text in input area"""
     with me.box(style=me.Style(display="flex", justify_content="flex-start")):
-        for i in range(len(chips)):
+        for i, chip in enumerate(chips):
             with me.content_button(type="raised",
                                    on_click=on_chip_click,
-                                   key=chips[i]["text"],
+                                   key=chip["text"],
                                    style=me.Style(
                                        border_radius="10px",
                                        margin=me.Margin.all(5),
                                        background=me.theme_var("secondary-container")
             )):
-                me.text(text=chips[i]["text"])
+                me.text(text=chip["text"])
 
 def display_rich_elements(rich_content):
     """Displays rich elements"""
@@ -357,7 +367,8 @@ def display_helper_buttons(message, message_index):
 
 def chat(
   transform: Callable[
-    [str, list[ChatMessage]], Generator[str, None, None] | str
+    [str, list[ChatMessage]],
+    Generator[str, None, None] | str
   ],
   *,
   title: str | None = None,

@@ -21,7 +21,7 @@ class PDFTextSplitter:
 
     def _clean_special_chars(self, text: str):
         """Remove special characters/unicodes in the text"""
-        cleaned_text = text.replace("\t\n","").replace("\x08\n","").replace("\xa0","").replace("\t\r","").replace("\uf0b7","")
+        cleaned_text = text.replace("\t\n","").replace("\x08\n","").replace("\xa0","").replace("\t\r","").replace("\uf0b7","") #pylint: disable=C0301
 
         return cleaned_text
 
@@ -50,7 +50,7 @@ class PDFTextSplitter:
 
         return doc_id, full_text, page_info
 
-    def get_chunks_with_info(self, pdf_uri: str, pdf_text: str, page_info: list, doc_id: str):
+    def get_chunks_with_info(self, pdf_uri: str, pdf_text: str, page_info: list, doc_id: str): #pylint: disable=R0914 (too-many-positional-arguments)
         """Split pdf content to chunks and return metadata dict"""
         chunks = []
         text_chunks = self.text_splitter.split_text(pdf_text)
@@ -68,7 +68,8 @@ class PDFTextSplitter:
             chunk_positions.append((chunk_start, chunk_end))
             start_idx = chunk_start + 1
 
-        # Identify which pages the chunk falls under, lowest and highest number of the page will be the page span
+        # Identify which pages the chunk falls under, lowest and highest
+        # number of the page will be the page span
         for i, (chunk, (start_pos, end_pos)) in enumerate(zip(text_chunks, chunk_positions)):
             spanning_pages = []
             for page in page_info:
@@ -99,7 +100,7 @@ class PDFTextSplitter:
 
         return chunks
 
-    def process_documents(self, file_uri: list=[]):
+    def process_documents(self, file_uri: list):
         """Process documents to chunks"""
         if not file_uri:
             file_uri = self.file_uri

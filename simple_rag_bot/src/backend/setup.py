@@ -34,7 +34,8 @@ def initial_setup():
 
     embeddings_data = load_embeddings("local_db/embeddings.jsonl")
 
-    def create_vector_db(embeddings_data: list, folder_name: str, db_name: str, collection_name: str):
+    def create_vector_db(embeddings_data: list, folder_name: str,
+                         db_name: str, collection_name: str):
         """Creates vector db with provied embeddings"""
         retriever_instance = CustomMilvusClient(uri=f"{folder_name}/{db_name}.db")
 
@@ -68,7 +69,10 @@ def run_test():
         docs = retriever_instance.query_collection(collection_name=milvus_collection,
                                                     query_embedding=query_embedding,
                                                     limit=5,
-                                                    output_fields=["content", "page_span","document_metadata"])
+                                                    output_fields=["content", 
+                                                                   "page_span",
+                                                                   "document_metadata"]
+                                                )
         print(docs[0][0])
         return docs
 
