@@ -7,10 +7,10 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 class EmbeddingClient:
     """Custom class for embedding data with Gemini models"""
     def __init__(self, model_name: str="models/text-embedding-004", embedding_api_key: str=""):
-       """Initialize embedding client with required params"""
-       self.model_name = model_name
-       self.embedding_api_key = embedding_api_key
-       self.embedding_instance = GoogleGenerativeAIEmbeddings(model=self.model_name,
+        """Initialize embedding client with required params"""
+        self.model_name = model_name
+        self.embedding_api_key = embedding_api_key
+        self.embedding_instance = GoogleGenerativeAIEmbeddings(model=self.model_name,
                                                               google_api_key=self.embedding_api_key)
 
     @sleep_and_retry
@@ -18,10 +18,10 @@ class EmbeddingClient:
     def _generate_embedding(self, chunk_content):
         """Helper function to generate embedding with rate limiting"""
         try:
-           return self.embedding_instance.embed_query(chunk_content)
+            return self.embedding_instance.embed_query(chunk_content)
         except Exception as e:
-           print(e)
-           return None
+            print(e)
+            return None
 
     def generate_embeddings(self, chunks_data):
         """Generate embeddings for content"""

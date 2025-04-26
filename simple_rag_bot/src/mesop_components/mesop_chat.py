@@ -1,5 +1,5 @@
 """Components for mesop chat box"""
-# pylint: disable=redefined-builtin
+# pylint: disable=redefined-builtin,not-context-manager
 # import time
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, Any, Callable, Generator, Literal
@@ -274,7 +274,7 @@ def display_citations(citations):
                 ):
                     with me.card_content():
                         # FIXME: citation url tries to navigate to a page of mesop app
-                        # local url starts with /home/user/...pdf. When opened in browser, 
+                        # local url starts with /home/user/...pdf. When opened in browser,
                         # browser opens it as file:///home/user/...pdf
                         # But when this url is displayed on UI, when opened, it opens
                         # as localhost:port/home/user/...pdf
@@ -388,7 +388,7 @@ def chat( # pylint: disable=R0915
     This function creates event handlers for text input and output operations
     using the provided function `transform` to process the input and generate the output.
     Args:
-        transform: Function that takes in a prompt and chat history and 
+        transform: Function that takes in a prompt and chat history and
         returns a response to the prompt.
         title: Headline text to display at the top of the UI.
         bot_user: Name of your bo   t / assistant
