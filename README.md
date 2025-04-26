@@ -1,22 +1,25 @@
 # Gen AI Mini Projects
 This is a repo to implement some Gen AI usecases that seemed interesting.
 List of projects/ideas I plan to implement:
-- ChatBots
-  - [x] Basic ChatBot (Text inputs)
-  - [x] Basic ChatBot (Multimodal inputs)
-  - [x] RAG Based ChatBot (simple data)
+- **ChatBots**
+  - [x] Basic ChatBot -> [simple-gemini-chatbot](https://github.com/Ruthvik-1411/GenAI-Projects/tree/main/simple-gemini-chatbot#simple-multimodal-chatbot)
+  - [x] RAG Based ChatBot (basic) -> [simple-rag-chatbot-with-mesop-ui](https://github.com/Ruthvik-1411/GenAI-Projects/tree/main/simple_rag_bot#simple-rag-chatbot-with-mesop-ui)
   - [ ] RAG Based ChatBot (Complex datasets, using different techniques)
-- NL2SQL
-  - [ ] Basic NL2SQL Bot on simple data. (Use existing expense data for CY24)
-  - [ ] NL2SQL Bot with visualizations (Use Google Charts)
-  - [ ] Agentic N2SQL Bot (yet to decide)
-  - [ ] Insights generator (decompose queries)
-- Webscraping
-  - [ ] Simple Webscraping Agent
-- Image Generation
+      + Diverse domains, something llm's are not trained on.
+      + Various File formats, PDF, Docx, HTML, images, txt. Multimodal embeddings.
+      + Rich enough data for retrieval + generations + evals using different techniques for chunking, retrieving...
+- **NL2SQL**
+  - [ ] Basic NL2SQL Bot on simple data with viz. (Use existing expense data for CY24/similar samples)
+  - [ ] Agentic N2SQL Bot (Generate insights, decompose queries, recommendations using adv techniques)
+- **Webscraping**
+  - [ ] Simple Webscraping Agent to generate reports. (Kind of like deep research)
+- **Image Generation**
   - [ ] Youtube Thumbnail Generator. (Give url and image style(optional), image can be generated)
   - [ ] Dress picker (Upload all images of clothes and recommendations can be provided based on occasion)
-  - [ ] Image generation using open source models.
+  - [ ] Short story generator with images. (Generates image slides to depict a story)
+- **Live Application** (Multimodal Live)
+  - [ ] Automated bank teller (simple live call agent to provide a/c balance)
+  - [ ] Simple Jarvis agent with access to some data and bunch of tools.(Starts with a wake word)
 
 * I'll add more ideas as they come up.
 
