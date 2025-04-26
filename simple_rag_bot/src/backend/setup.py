@@ -69,7 +69,7 @@ def run_test():
         docs = retriever_instance.query_collection(collection_name=milvus_collection,
                                                     query_embedding=query_embedding,
                                                     limit=5,
-                                                    output_fields=["content", 
+                                                    output_fields=["content",
                                                                    "page_span",
                                                                    "document_metadata"]
                                                 )

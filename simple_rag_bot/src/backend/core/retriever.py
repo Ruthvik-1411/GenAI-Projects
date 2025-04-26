@@ -1,4 +1,5 @@
 """Modules for retriever client"""
+# pylint: disable=too-many-positional-arguments
 import time
 from pymilvus import MilvusClient
 
@@ -52,7 +53,7 @@ class CustomMilvusClient:
 			execution_time = end_time - start_time
 			print(f"Retrieved in {execution_time:.6f}s.")
 			return retriever_result
-		
+
 		end_time = time.time()
 		execution_time = end_time - start_time
 		print(f"Error retrieving results: {execution_time:.6f}s.")

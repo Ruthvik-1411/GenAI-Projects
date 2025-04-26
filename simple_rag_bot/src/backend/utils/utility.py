@@ -3,7 +3,6 @@ import os
 from os import listdir
 from os.path import isfile, join
 import json
-
 from langchain_core.messages import HumanMessage, AIMessage
 
 def get_files_in_dir(path):

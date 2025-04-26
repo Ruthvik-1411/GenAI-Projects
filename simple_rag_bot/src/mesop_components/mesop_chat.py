@@ -1,4 +1,5 @@
 """Components for mesop chat box"""
+# pylint: disable=redefined-builtin
 # import time
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, Any, Callable, Generator, Literal
@@ -258,7 +259,7 @@ def dialog_actions():
 def display_citations(citations):
     """Display citations on chat box"""
     with me.box(style=me.Style(display="flex", justify_content="flex-start")):
-        for i, citation in enumerate(citations):
+        for citation in citations:
             with me.card(appearance="raised",
                          style=me.Style(
                              display="inline-block",
@@ -273,10 +274,13 @@ def display_citations(citations):
                 ):
                     with me.card_content():
                         # FIXME: citation url tries to navigate to a page of mesop app
-                        # local url starts with /home/user/...pdf. When opened in browser, browser opens it as file:///home/user/...pdf
-                        # But when this url is displayed on UI, when opened, it opens as localhost:port/home/user/...pdf
+                        # local url starts with /home/user/...pdf. When opened in browser, browser opens it 
+                        # as file:///home/user/...pdf
+                        # But when this url is displayed on UI, when opened, it opens 
+                        # as localhost:port/home/user/...pdf
                         # Since localhost is serving mesop and not pdf files, it's a broken url
-                        # HOTFIX: serve the document/ folder as python http server and replace the url to hit this server.
+                        # HOTFIX: serve the document/ folder as python http server and 
+                        # replace the url to hit this server.
                         me.link(
                             text=citation["title"],
                             open_in_new_tab=True,
@@ -289,7 +293,7 @@ def display_citations(citations):
 def display_chips(chips):
     """Display chip buttons to auto populate chip text in input area"""
     with me.box(style=me.Style(display="flex", justify_content="flex-start")):
-        for i, chip in enumerate(chips):
+        for chip in chips:
             with me.content_button(type="raised",
                                    on_click=on_chip_click,
                                    key=chip["text"],
@@ -304,10 +308,10 @@ def display_rich_elements(rich_content):
     """Displays rich elements"""
     if rich_content["type"] == "file":
         # Display file name card
-        pass
+        return None
     elif rich_content["type"] == "image":
         # Display image inside a container
-        pass
+        return None
     elif rich_content["type"] == "chips":
         # Display clickable mini chip that populates the input text area
         return display_chips(rich_content["chips"])

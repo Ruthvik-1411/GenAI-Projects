@@ -112,8 +112,8 @@ def app_screen():
         # settings_sidebar()
 
 def left_sidebar():
-   """Display left sidebar"""
-   with me.box(style=me.Style(
+    """Display left sidebar"""
+    with me.box(style=me.Style(
         background=me.theme_var("surface-container-low"),
         overflow_y="auto"
     )):

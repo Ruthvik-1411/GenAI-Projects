@@ -306,9 +306,9 @@ class RAGApp():
 
         graph_response = self.graph.invoke(user_input)
 
-        return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps") #pylint : disable=C0301
+        return graph_response.get("bot_response"), graph_response.get("relevant_docs"), graph_response.get("steps") # pylint: disable=line-too-long
 
-    def generate_rag_response(self, input: str, history: list):
+    def generate_rag_response(self, user_input: str, history: list):
         """Generates responses using input and history"""
 
         # mesop_chat adds user message to the history for 1st message.
@@ -316,7 +316,7 @@ class RAGApp():
         if len(history) == 1:
             history = []
         formatted_messages = format_chat_messages(history)
-        bot_response, citations, diagnostic_info = self.chat_session(input, formatted_messages)
+        bot_response, citations, diagnostic_info = self.chat_session(user_input, formatted_messages)
 
         if citations:
             response = {
@@ -334,11 +334,11 @@ class RAGApp():
             }
         return response
 
-def generate_response(input: str, history: list):
+def generate_response(user_input: str, history: list):
     """Testing function"""
-    if "citations" in input:
+    if "citations" in user_input:
         response = {
-            "message": f"Echo: {input}",
+            "message": f"Echo: {user_input}",
             "rich_content": {
             "type": "citations",
             "citations": [
@@ -353,9 +353,9 @@ def generate_response(input: str, history: list):
             ]
             }
         }
-    elif "chip" in input:
+    elif "chip" in user_input:
         response = {
-            "message": f"Echo: {input}",
+            "message": f"Echo: {user_input}",
             "rich_content": {
             "type": "chips",
             "chips": [
@@ -370,7 +370,7 @@ def generate_response(input: str, history: list):
         }
     else:
         response = {
-            "message": f"Echo: {input}"
+            "message": f"Echo: {user_input}"
         }
 
     return response

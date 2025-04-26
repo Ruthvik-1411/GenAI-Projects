@@ -16,13 +16,8 @@ disable=
     W1514,  # unspecified-encoding
     W1203,  # logging-fstring-interpolation
     R0902,  # too-many-instance-attributes
+    W0511,  # fixme 
 
 [FORMAT]
 # Max line length
 max-line-length=100
-
-[MISCELLANEOUS]
-# List of note tags to take in consideration, separated by a comma.
-notes=FIXME,
-      XXX,
-      TODO
