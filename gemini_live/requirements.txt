@@ -1,0 +1,5 @@
+pipecat-ai==0.0.67
+python-dotenv
+onnxruntime
+websockets==15.0.1
+google-generativeai==0.8.5
