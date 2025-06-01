@@ -2,3 +2,4 @@ bot-env
 __pycache__
 **config.py
 venv
+base_env
