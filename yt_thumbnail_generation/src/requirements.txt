@@ -1,0 +1,4 @@
+yt-dlp==2025.5.22
+opencv-python==4.11.0.86
+google-genai==1.18.0
+streamlit==1.45.0
