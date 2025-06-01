@@ -1,5 +1,5 @@
 """Code for chat handling logic"""
-# pylint: disable=W1203, R1737
+# pylint: disable=W1203, R1737, no-name-in-module
 import logging
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI

@@ -1,5 +1,5 @@
 """Streamlit UI code"""
-# pylint: disable=line-too-long, invalid-name
+# pylint: disable=line-too-long, invalid-name, no-name-in-module
 import streamlit as st
 from bot.chat import get_stream_response, on_model_change, initialize_model
 from ml_config import MODELS, ALLOWED_FILE_TYPES
