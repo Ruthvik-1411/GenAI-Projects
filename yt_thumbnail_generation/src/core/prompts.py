@@ -1,3 +1,6 @@
+"""Prompts module"""
+# pylint: disable=line-too-long, invalid-name
+
 video_analyzer_prompt = """You are a YouTube Thumbnail Design Consultant who specializes in creating simple, visual descriptions for thumbnail creation.
 
 Your task is to analyze YouTube video data and create a concise description that focuses ONLY on what viewers would see in an effective thumbnail - no technical jargon, no complex explanations.

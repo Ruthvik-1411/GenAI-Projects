@@ -1,16 +1,15 @@
+"""Streamlit UI for thumbnail generator"""
+# pylint: disable=line-too-long
+
+import os
 import streamlit as st
-import time # To simulate processing
-import os # For dummy file paths
-from PIL import Image # For displaying images
 
 from video_processor.processor import get_video_data
 from utils.utility import construct_contents
 from core.video_analyzer import VideoAnalyzer
 from core.prompt_generator import PromptGenerator
 from core.image_generator import ImageGenerator
-
 from core.prompts import video_analyzer_prompt, imagen_prompt_generator
-from config import GEMINI_API_KEY
 
 from google import genai
 
@@ -44,7 +43,7 @@ with st.sidebar:
         "Choose processing mode:",
         ("Human in the Loop (Edit & Approve)", "Automated"),
         key="workflow_mode",
-        disabled=("Automated" == "Automated") # will enable later
+        disabled=True # will enable later
     )
 
 video_url_input = st.text_input(
@@ -94,13 +93,14 @@ if 'imagen_prompter' not in st.session_state:
 if 'image_generator' not in st.session_state:
     st.session_state.image_generator = ""
 
-def validate_api_key(key):
-    if not key:
+def validate_api_key(apikey):
+    """Validate api key"""
+    if not apikey:
         return False, "API Key is missing."
-    if not key.startswith("AIza") or len(key) < 30:
-        return False, "API Key appears invalid."
-    
-    client = genai.Client(api_key=key)
+    if not apikey.startswith("AIza") or len(apikey) < 30:
+        return False, "API Key is invalid."
+
+    client = genai.Client(api_key=apikey)
 
     return True, client
 
@@ -130,24 +130,23 @@ def get_video_info_and_process(url, num_snaps):
         st.session_state.video_metadata = video_metadata
         st.session_state.media_paths = []
         return True, "Video downloaded successfully.", [], video_metadata, media_path
-    else:
-        return False, "File too big", [], {}, ""
+    return False, "File too big", [], {}, ""
 
-def generate_description_from_video_data(metadata, media_content, model):
-    
-    message_content = construct_contents(metadata, media_content)
+def generate_description_from_video_data(video_metadata, media_content, model):
+    """Wrapper to generate video desciption from metadata and media contents"""
+    message_content = construct_contents(video_metadata, media_content)
 
     video_description = st.session_state.video_analyzer.get_gemini_response(message_content)
 
     return True, "Description generated.", video_description
 
 def generate_prompt_from_description(description, model):
-    
+    """Wrapper to generate prompt from video description"""
     imagen_prompt = st.session_state.imagen_prompter.get_imagen_prompt(description)
     return True, "Image prompt generated.", imagen_prompt
 
 def generate_image_from_prompt(prompt, title, model):
-    
+    """Wrapper to generate image from prompt"""
     try:
         image_result = st.session_state.image_generator.generate_image(prompt, title)
         return True, "Thumbnail image generated successfully!", image_result
@@ -164,7 +163,7 @@ with col2_btn_clear:
     if st.button("Reset Workflow", use_container_width=True):
         for key in list(st.session_state.keys()):
             if key not in ['api_key', 'prompt_model', 'image_model', 'workflow_mode', 'video_url', 'num_snapshots']:
-                 del st.session_state[key]
+                del st.session_state[key]
         st.rerun()
 
 if not st.session_state.api_key:
@@ -212,7 +211,7 @@ with st.expander("Step 1: Video Processing", expanded=True):
     if st.session_state.video_processed:
         if st.session_state.media_paths:
             st.subheader("Snapshots")
-            st.info(f"Snapshots of the video.")
+            st.info("Snapshots of the video.")
 
             # Which snapshots to display (e.g., first, middle, last)
             num_to_show = len(st.session_state.media_paths)
@@ -220,13 +219,16 @@ with st.expander("Step 1: Video Processing", expanded=True):
             if num_to_show == 0:
                 pass
             elif num_to_show <= 5: # Show all if 5 or less
-                 indices_to_show = list(range(num_to_show))
+                indices_to_show = list(range(num_to_show))
             else: # Show first, some middle ones, and last, max 5
                 indices_to_show.append(0) # First
                 # Middle ones - spread them out
-                if num_to_show > 2: indices_to_show.append(num_to_show // 4)
-                if num_to_show > 1: indices_to_show.append(num_to_show // 2)
-                if num_to_show > 3: indices_to_show.append(num_to_show * 3 // 4)
+                if num_to_show > 2:
+                    indices_to_show.append(num_to_show // 4)
+                if num_to_show > 1:
+                    indices_to_show.append(num_to_show // 2)
+                if num_to_show > 3:
+                    indices_to_show.append(num_to_show * 3 // 4)
                 indices_to_show.append(num_to_show - 1) # Last
                 indices_to_show = sorted(list(set(indices_to_show)))
                 indices_to_show = indices_to_show[:5] # Cap at 5 images
@@ -235,9 +237,9 @@ with st.expander("Step 1: Video Processing", expanded=True):
             for i, snap_idx in enumerate(indices_to_show):
                 path = st.session_state.media_paths[snap_idx]
                 if os.path.exists(path):
-                     cols[i].image(path, caption=f"Snapshot {snap_idx + 1}", use_container_width=True)
+                    cols[i].image(path, caption=f"Snapshot {snap_idx + 1}", use_container_width=True)
                 else:
-                     cols[i].warning(f"Snapshot {snap_idx+1} not found.")
+                    cols[i].warning(f"Snapshot {snap_idx+1} not found.")
 
         elif st.session_state.video_downloaded_path:
             st.subheader("Video Downloaded")
@@ -255,10 +257,10 @@ with st.expander("Step 2: Generate Video Description", expanded=st.session_state
     if st.session_state.video_processed:
         if not st.session_state.description_generated:
             with st.spinner("Generating video description..."):
-                media_content = st.session_state.media_paths if st.session_state.media_paths else st.session_state.video_downloaded_path
+                media_data = st.session_state.media_paths if st.session_state.media_paths else st.session_state.video_downloaded_path
                 success, msg, desc = generate_description_from_video_data(
                     st.session_state.video_metadata,
-                    media_content,
+                    media_data,
                     st.session_state.prompt_model
                 )
                 if success:
@@ -322,7 +324,7 @@ with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_
     if st.session_state.prompt_generated and st.session_state.image_prompt:
         # This block will execute if the "Generate Thumbnail Image" button was clicked or if we are re-running into this state
         if not st.session_state.generated_image_path: # Only generate if not already done
-             with st.spinner(f"Generating thumbnail using {st.session_state.image_model}..."):
+            with st.spinner(f"Generating thumbnail using {st.session_state.image_model}..."):
                 success, msg, img_path = generate_image_from_prompt(
                     st.session_state.image_prompt,
                     st.session_state.video_title,
