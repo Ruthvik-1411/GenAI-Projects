@@ -1,5 +1,5 @@
 """Utility files for common functions"""
-# pylint: diable=consider-using-with
+# pylint: disable=consider-using-with
 import re
 import os
 import base64
