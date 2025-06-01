@@ -42,6 +42,5 @@ class ImageGenerator():
                     return saved_path
 
             return None
-        else:
-            print("Support to be added for imagen/other models")
-            return None
+        print("Support to be added for imagen/other models")
+        return None

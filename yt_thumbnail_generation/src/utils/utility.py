@@ -1,4 +1,5 @@
 """Utility files for common functions"""
+# pylint: diable=consider-using-with
 import re
 import os
 import base64
@@ -33,8 +34,8 @@ def get_file_data(file_path):
 def save_binary_file(file_name, data, thumbnails_dir = "thumbnails"):
     """Save the image to thumbnails dir"""
     if not os.path.exists(thumbnails_dir):
-      os.makedirs(thumbnails_dir)
-      print(f"Created thumbnails directory: {thumbnails_dir}")
+        os.makedirs(thumbnails_dir)
+        print(f"Created thumbnails directory: {thumbnails_dir}")
 
     file_path = os.path.join(thumbnails_dir, file_name)
     file = open(file_path, "wb")

@@ -125,7 +125,7 @@ def get_video_info_and_process(url, num_snaps):
         st.session_state.video_metadata = video_metadata
         st.session_state.video_downloaded_path = None
         return True, "Snapshots taken.", media_path, video_metadata, None
-    elif isinstance(media_path, str):
+    if isinstance(media_path, str):
         st.session_state.video_downloaded_path = media_path
         st.session_state.video_metadata = video_metadata
         st.session_state.media_paths = []

@@ -1,5 +1,5 @@
 """Module to orchestrate the complete workflow"""
-# pylint: invalid-name
+# pylint: disable=invalid-name
 
 from video_processor.processor import get_video_data
 from utils.utility import construct_contents

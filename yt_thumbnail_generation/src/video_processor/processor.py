@@ -1,5 +1,5 @@
 """Video processor functions using yt_dlp"""
-
+# pylint: disable=too-many-branches
 import os
 import tempfile
 import cv2
@@ -16,7 +16,6 @@ def update_download_progress(d):
         download_progress = float(download_percent.replace('%', '')) / 100
         st.session_state.video_processor_progress.progress(download_progress,
                                                            text="Downloading video...")
-    return None
 
 def generate_snapshots(video_path, num_snapshots=5, output_dir = "snapshots"):
     """Generate snapshots for the video"""
@@ -87,7 +86,7 @@ def get_video_data(url, num_snaps = 5, min_duration = 120, download_dir = "downl
 
             if video_duration < min_duration:
                 print("Shorter video, using mp4 file directly")
-                
+
                 if not os.path.exists(download_dir):
                     os.makedirs(download_dir)
                     print(f"Created downloads directory: {download_dir}")
@@ -108,16 +107,16 @@ def get_video_data(url, num_snaps = 5, min_duration = 120, download_dir = "downl
                     if 'video_processor_progress' in st.session_state:
                         st.session_state.video_processor_progress.empty()
                         del st.session_state.video_processor_progress
-                        return info_dict, file_path
+                    return info_dict, file_path
                 except yt_dlp.utils.DownloadError as e:
                     print(f"Error during download or info extraction: {e}")
-                    raise ValueError(e)
+                    raise ValueError(e) from e
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
-                    raise ValueError(e)
+                    raise ValueError(e) from e
             elif min_duration < video_duration < 1800:
                 print("Longer video, downloading mp4 file and generating snapshots")
-                
+
                 file_path = os.path.join(tempfile.gettempdir(), f"{title}.mp4")
                 ydl_opts = {
                     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
@@ -141,10 +140,10 @@ def get_video_data(url, num_snaps = 5, min_duration = 120, download_dir = "downl
                     return info_dict, media_path
                 except yt_dlp.utils.DownloadError as e:
                     print(f"Error during download or info extraction: {e}")
-                    raise ValueError()
+                    raise ValueError(e) from e
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
-                    raise ValueError
+                    raise ValueError(e) from e
             else:
                 print("Video is longer than 1/2 hour, skipping")
                 return None, None
