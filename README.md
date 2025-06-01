@@ -14,7 +14,7 @@ List of projects/ideas I plan to implement:
 - **Webscraping**
   - [ ] Simple Webscraping Agent to generate reports. (Kind of like deep research)
 - **Image Generation**
-  - [ ] Youtube Thumbnail Generator. (Give url and image style(optional), image can be generated)
+  - [ ] Youtube Thumbnail Generator. [InProgress](https://github.com/Ruthvik-1411/GenAI-Projects/tree/main/yt_thumbnail_generation)
   - [ ] Dress picker (Upload all images of clothes and recommendations can be provided based on occasion)
   - [ ] Short story generator with images. (Generates image slides to depict a story)
 - **Live Application** (Multimodal Live)
