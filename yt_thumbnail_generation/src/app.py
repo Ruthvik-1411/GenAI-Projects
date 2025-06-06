@@ -3,7 +3,7 @@
 
 import os
 import streamlit as st
-
+from datetime import datetime, timedelta, timezone
 from video_processor.processor import get_video_data
 from utils.utility import construct_contents
 from core.video_analyzer import VideoAnalyzer
@@ -12,6 +12,8 @@ from core.image_generator import ImageGenerator
 from core.prompts import video_analyzer_prompt, imagen_prompt_generator
 
 from google import genai
+
+ist_offset = timezone(timedelta(seconds=19800))
 
 st.set_page_config(page_title="Youtube Thumbnail Generator", layout="wide")
 st.title("Youtube Thumbnail Generator")
@@ -41,9 +43,9 @@ with st.sidebar:
     st.header("Workflow Mode")
     workflow_mode = st.radio(
         "Choose processing mode:",
-        ("Human in the Loop (Edit & Approve)", "Automated"),
+        ("Edit & Review", "Automated"),
         key="workflow_mode",
-        disabled=True # will enable later
+        disabled=False
     )
 
 video_url_input = st.text_input(
@@ -246,7 +248,6 @@ with st.expander("Step 1: Video Processing", expanded=True):
             st.success(f"Video downloaded to: `{st.session_state.video_downloaded_path}`")
 
         if st.button("Proceed to Generate Description", disabled=not st.session_state.video_processed):
-            #TODO: Need to add proceed logic, currently just swifts through, but stop the process here and wait for input.
             st.session_state.description_generated = False # Reset for regeneration if needed
             st.session_state.prompt_generated = False
             st.session_state.generated_image_path = None
@@ -282,7 +283,6 @@ with st.expander("Step 2: Generate Video Description", expanded=st.session_state
             st.session_state.video_description = edited_description # Keep it updated
 
             if st.button("Use Description to Generate Prompt", disabled=not edited_description.strip()):
-                #TODO: Need to add proceed logic, currently just swifts through, but stop the process here and wait for input.
                 st.session_state.prompt_generated = False # Reset for regeneration
                 st.session_state.generated_image_path = None
                 st.rerun()
@@ -307,17 +307,32 @@ with st.expander("Step 3: Generate Image Prompt", expanded=st.session_state.desc
         if st.session_state.prompt_generated:
             st.subheader("Image Generation Prompt")
             edited_prompt = st.text_area(
-                "Review and edit the image prompt:",
+                "Review and edit the image generation prompt:",
                 value=st.session_state.image_prompt,
                 height=200,
                 key="edited_prompt"
             )
             st.session_state.image_prompt = edited_prompt # Keep it updated
+            col_generate, col_download = st.columns([3, 1])
 
-            if st.button("Generate Thumbnail Image with this Prompt", type="primary", disabled=not edited_prompt.strip()):
-                #TODO: Need to add proceed logic, currently just swifts through, but stop the process here and wait for input.
-                st.session_state.generated_image_path = None # Reset
-                st.rerun()
+            with col_generate:
+                if st.button(
+                    "Generate Thumbnail Image with this Prompt",
+                    type="primary",
+                    disabled=not edited_prompt.strip(),
+                    use_container_width=True
+                ):
+                    st.session_state.generated_image_path = None # Reset
+                    st.rerun()
+            with col_download:
+                st.download_button(
+                    label="Download this Prompt",
+                    data=st.session_state.image_prompt,
+                    file_name=f"{st.session_state.video_title}_prompt.txt" if st.session_state.video_title else "prompt.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    disabled=not edited_prompt.strip()
+                )
 
 # --- Final Thumbnail Generation ---
 with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_generated and st.session_state.image_prompt and not st.session_state.generated_image_path):
@@ -325,9 +340,11 @@ with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_
         # This block will execute if the "Generate Thumbnail Image" button was clicked or if we are re-running into this state
         if not st.session_state.generated_image_path: # Only generate if not already done
             with st.spinner(f"Generating thumbnail using {st.session_state.image_model}..."):
+                curr_timestamp = datetime.now(ist_offset).strftime("%H%M_%d%m%Y")
+                versioned_image_title = f"{st.session_state.video_title}_{curr_timestamp}"
                 success, msg, img_path = generate_image_from_prompt(
                     st.session_state.image_prompt,
-                    st.session_state.video_title,
+                    versioned_image_title,
                     st.session_state.image_model,
                 )
                 if success:
@@ -345,7 +362,7 @@ with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_
                     st.download_button(
                         label="Download Thumbnail",
                         data=file,
-                        file_name=st.session_state.video_title.lower(),
+                        file_name=os.path.basename(st.session_state.generated_image_path),
                         mime="image/png"
                     )
             else:
