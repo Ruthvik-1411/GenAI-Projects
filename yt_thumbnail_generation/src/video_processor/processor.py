@@ -119,7 +119,8 @@ def get_video_data(url, num_snaps = 5, min_duration = 120, download_dir = "downl
 
                 file_path = os.path.join(tempfile.gettempdir(), f"{title}.mp4")
                 ydl_opts = {
-                    # TODO: Change format to low quality(480p) for longer videos or even less and ignore audio
+                    # TODO: Change format to low quality(480p) for longer videos 
+                    # or even less and ignore audio
                     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
                     'outtmpl': file_path,
                     'progress_hooks': [update_download_progress],

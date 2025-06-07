@@ -1,9 +1,9 @@
 """Streamlit UI for thumbnail generator"""
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,invalid-name
 
 import os
-import streamlit as st
 from datetime import datetime, timedelta, timezone
+import streamlit as st
 from video_processor.processor import get_video_data
 from utils.utility import construct_contents
 from core.video_analyzer import VideoAnalyzer
@@ -164,28 +164,28 @@ def generate_image_from_prompt(prompt, title, model):
         st.session_state.error_message = f"Error occured while generating image: {e}"
         return False, st.session_state.error_message, None
 
-def handle_chat_editing(message, history: list=[]):
+def handle_chat_editing(message, history: list):
     """Wrapper to handle chat session and image editing"""
     try:
         response = st.session_state.image_editor.chat_session(message, history)
-        response_text, response_media = st.session_state.image_editor.serialize_response(response, str(len(history)))
-        return response_text, response_media
+        text, media = st.session_state.image_editor.serialize_response(response, str(len(history)))
+        return text, media
     except Exception as e:
         return f"Error during chat processing: {e}", None
 
-def update_chat_history(role: str, text=None, media=None):
+def update_chat_history(msg_role: str, msg_text=None, msg_media=None):
     """Updates chat history in session state"""
-    content = {}
+    msg_content = {}
 
-    if text:
-        content["text"] = text
-    if media:
-        content["media"] = media
-    
+    if msg_text:
+        msg_content["text"] = msg_text
+    if msg_media:
+        msg_content["media"] = msg_media
+
     if content:
         st.session_state.chat_history.append({
-            "role": role,
-            "content": content
+            "role": msg_role,
+            "content": msg_content
         })
         print(f"History: {st.session_state.chat_history}")
         return True
@@ -412,7 +412,7 @@ if st.session_state.generated_image_path and st.session_state.enable_chat_edit:
     with st.expander("Step 5: Edit Thumbnail via Chat", expanded=True):
         if 'chat_history' not in st.session_state:
             st.session_state.chat_history = []
-        
+
         col_chat, col_reset = st.columns([4, 1])
         with col_chat:
             st.markdown("### Need to improve this image?")
@@ -447,7 +447,7 @@ if st.session_state.generated_image_path and st.session_state.enable_chat_edit:
                                     )
                             with col_img:
                                 st.image(content["media"], caption="Generated Image", use_container_width=True)
-        
+
         user_message = st.chat_input("Need to add text, change style? Anything you want to change, just ask.")
         if user_message:
             with st.spinner("Editing image based on your input..."):
