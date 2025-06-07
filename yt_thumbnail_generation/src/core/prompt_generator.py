@@ -15,7 +15,7 @@ class PromptGenerator():
     def get_imagen_prompt(self, video_description):
         """Generates prompt for image generation using video description"""
         response = self.client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model=self.model,
             config=types.GenerateContentConfig(
                 system_instruction=self.system_instructions,
                 temperature=0.1,

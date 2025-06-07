@@ -125,3 +125,40 @@ def construct_contents(video_metadata, media_path):
             contents.append("Description:")
     print("Contents length",len(contents))
     return contents
+
+def deserialize_parts(content_data):
+    """Converts content stored in db/session_state to parts"""
+    parts = []
+    if "text" in content_data:
+        parts.append(
+            types.Part.from_text(text=content_data["text"])
+        )
+    if "media" in content_data:
+        parts.append(types.Part.from_bytes(
+            mime_type="image/"+content_data["media"].split(".")[-1],
+            data=get_file_data(content_data["media"])
+        ))
+
+    return parts
+
+def history_to_contents(message, history: list=""):
+    """Converts list of messages to llm consumable format"""
+    contents = []
+
+    for chat_message in history:
+        role = chat_message["role"]
+        content_data = chat_message["content"]
+        parts = deserialize_parts(content_data)
+        contents.append(types.Content(role=role, parts=parts))
+
+    if isinstance(message, list) and len(message[0]["content"].keys()) > 1:
+        message_parts = deserialize_parts(message[0]["content"])
+    else:
+        message_parts = [types.Part.from_text(text=message)]
+
+    contents.append(types.Content(
+        role="user",
+        parts=message_parts
+    ))
+
+    return contents

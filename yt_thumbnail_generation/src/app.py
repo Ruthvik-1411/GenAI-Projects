@@ -1,17 +1,20 @@
 """Streamlit UI for thumbnail generator"""
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,invalid-name
 
 import os
+from datetime import datetime, timedelta, timezone
 import streamlit as st
-
 from video_processor.processor import get_video_data
 from utils.utility import construct_contents
 from core.video_analyzer import VideoAnalyzer
 from core.prompt_generator import PromptGenerator
 from core.image_generator import ImageGenerator
+from core.image_editor import ImageEditor
 from core.prompts import video_analyzer_prompt, imagen_prompt_generator
 
 from google import genai
+
+ist_offset = timezone(timedelta(seconds=19800))
 
 st.set_page_config(page_title="Youtube Thumbnail Generator", layout="wide")
 st.title("Youtube Thumbnail Generator")
@@ -38,12 +41,17 @@ with st.sidebar:
         # value="" #Add key for testing or in UI
     )
 
-    st.header("Workflow Mode")
-    workflow_mode = st.radio(
-        "Choose processing mode:",
-        ("Human in the Loop (Edit & Approve)", "Automated"),
-        key="workflow_mode",
-        disabled=True # will enable later
+    # st.header("Workflow Mode")
+    # workflow_mode = st.radio(
+    #     "Choose processing mode:",
+    #     ("Edit & Review", "Automated"),
+    #     key="workflow_mode",
+    #     disabled=False
+    # )
+    enable_chat_edit = st.checkbox(
+        "Enable Inline Chat Editing",
+        value=False,
+        key="enable_chat_edit"
     )
 
 video_url_input = st.text_input(
@@ -92,6 +100,8 @@ if 'imagen_prompter' not in st.session_state:
     st.session_state.imagen_prompter = ""
 if 'image_generator' not in st.session_state:
     st.session_state.image_generator = ""
+if 'image_editor' not in st.session_state:
+    st.session_state.image_editor = ""
 
 def validate_api_key(apikey):
     """Validate api key"""
@@ -154,6 +164,33 @@ def generate_image_from_prompt(prompt, title, model):
         st.session_state.error_message = f"Error occured while generating image: {e}"
         return False, st.session_state.error_message, None
 
+def handle_chat_editing(message, history: list):
+    """Wrapper to handle chat session and image editing"""
+    try:
+        response = st.session_state.image_editor.chat_session(message, history)
+        text, media = st.session_state.image_editor.serialize_response(response, str(len(history)))
+        return text, media
+    except Exception as e:
+        return f"Error during chat processing: {e}", None
+
+def update_chat_history(msg_role: str, msg_text=None, msg_media=None):
+    """Updates chat history in session state"""
+    msg_content = {}
+
+    if msg_text:
+        msg_content["text"] = msg_text
+    if msg_media:
+        msg_content["media"] = msg_media
+
+    if msg_content:
+        st.session_state.chat_history.append({
+            "role": msg_role,
+            "content": msg_content
+        })
+        print(f"History: {st.session_state.chat_history}")
+        return True
+    return False
+
 # --- Main Workflow ---
 
 col1_btn, col2_btn_clear = st.columns([3,1])
@@ -191,6 +228,9 @@ with st.expander("Step 1: Video Processing", expanded=True):
             )
 
             st.session_state.image_generator = ImageGenerator(
+                client=result
+            )
+            st.session_state.image_editor = ImageEditor(
                 client=result
             )
             with st.spinner("Processing video..."):
@@ -246,7 +286,6 @@ with st.expander("Step 1: Video Processing", expanded=True):
             st.success(f"Video downloaded to: `{st.session_state.video_downloaded_path}`")
 
         if st.button("Proceed to Generate Description", disabled=not st.session_state.video_processed):
-            #TODO: Need to add proceed logic, currently just swifts through, but stop the process here and wait for input.
             st.session_state.description_generated = False # Reset for regeneration if needed
             st.session_state.prompt_generated = False
             st.session_state.generated_image_path = None
@@ -282,7 +321,6 @@ with st.expander("Step 2: Generate Video Description", expanded=st.session_state
             st.session_state.video_description = edited_description # Keep it updated
 
             if st.button("Use Description to Generate Prompt", disabled=not edited_description.strip()):
-                #TODO: Need to add proceed logic, currently just swifts through, but stop the process here and wait for input.
                 st.session_state.prompt_generated = False # Reset for regeneration
                 st.session_state.generated_image_path = None
                 st.rerun()
@@ -307,17 +345,32 @@ with st.expander("Step 3: Generate Image Prompt", expanded=st.session_state.desc
         if st.session_state.prompt_generated:
             st.subheader("Image Generation Prompt")
             edited_prompt = st.text_area(
-                "Review and edit the image prompt:",
+                "Review and edit the image generation prompt:",
                 value=st.session_state.image_prompt,
                 height=200,
                 key="edited_prompt"
             )
             st.session_state.image_prompt = edited_prompt # Keep it updated
+            col_generate, col_download = st.columns([3, 1])
 
-            if st.button("Generate Thumbnail Image with this Prompt", type="primary", disabled=not edited_prompt.strip()):
-                #TODO: Need to add proceed logic, currently just swifts through, but stop the process here and wait for input.
-                st.session_state.generated_image_path = None # Reset
-                st.rerun()
+            with col_generate:
+                if st.button(
+                    "Generate Thumbnail Image with this Prompt",
+                    type="primary",
+                    disabled=not edited_prompt.strip(),
+                    use_container_width=True
+                ):
+                    st.session_state.generated_image_path = None # Reset
+                    st.rerun()
+            with col_download:
+                st.download_button(
+                    label="Download this Prompt",
+                    data=st.session_state.image_prompt,
+                    file_name=f"{st.session_state.video_title}_prompt.txt" if st.session_state.video_title else "prompt.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    disabled=not edited_prompt.strip()
+                )
 
 # --- Final Thumbnail Generation ---
 with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_generated and st.session_state.image_prompt and not st.session_state.generated_image_path):
@@ -325,9 +378,11 @@ with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_
         # This block will execute if the "Generate Thumbnail Image" button was clicked or if we are re-running into this state
         if not st.session_state.generated_image_path: # Only generate if not already done
             with st.spinner(f"Generating thumbnail using {st.session_state.image_model}..."):
+                curr_timestamp = datetime.now(ist_offset).strftime("%H%M_%d%m%Y")
+                versioned_image_title = f"{st.session_state.video_title}_{curr_timestamp}"
                 success, msg, img_path = generate_image_from_prompt(
                     st.session_state.image_prompt,
-                    st.session_state.video_title,
+                    versioned_image_title,
                     st.session_state.image_model,
                 )
                 if success:
@@ -345,8 +400,73 @@ with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_
                     st.download_button(
                         label="Download Thumbnail",
                         data=file,
-                        file_name=st.session_state.video_title.lower(),
+                        file_name=os.path.basename(st.session_state.generated_image_path),
                         mime="image/png"
                     )
             else:
                 st.error("Generated image file not found. Something went wrong.")
+            st.markdown("##### Want to make changes to this image? Enable inline chat editing from the sidebar.")
+
+# --- Editing Generated Thumbnail ---
+if st.session_state.generated_image_path and st.session_state.enable_chat_edit:
+    with st.expander("Step 5: Edit Thumbnail via Chat", expanded=True):
+        if 'chat_history' not in st.session_state:
+            st.session_state.chat_history = []
+
+        col_chat, col_reset = st.columns([4, 1])
+        with col_chat:
+            st.markdown("### Need to improve this image?")
+        with col_reset:
+            if st.button("Reset Chat", key="reset_chat_btn"):
+                st.session_state.chat_history = []
+                st.rerun()
+        with st.container():
+            for i, msg in enumerate(st.session_state.chat_history):
+                role = msg["role"]
+                if role == "model":
+                    role = "assistant"
+                with st.chat_message(role):
+                    content = msg["content"]
+                    if content.get("text"):
+                        st.markdown(content["text"])
+                    if content.get("media") and os.path.exists(content["media"]):
+                        if role == "user":
+                            st.image(content["media"], caption="Input Image", width=480)
+                        elif role == "assistant":
+                            col_img, col_dl = st.columns([1, 1])
+                            with col_dl:
+                                with open(content["media"], "rb") as img_file:
+                                    st.download_button(
+                                        label="",
+                                        icon=":material/download:",
+                                        data=img_file,
+                                        file_name=os.path.basename(content["media"]),
+                                        mime="image/png",
+                                        key=f"download_btn_{i}",
+                                        help="Download this image"
+                                    )
+                            with col_img:
+                                st.image(content["media"], caption="Generated Image", use_container_width=True)
+
+        user_message = st.chat_input("Need to add text, change style? Anything you want to change, just ask.")
+        if user_message:
+            with st.spinner("Editing image based on your input..."):
+                if len(st.session_state.chat_history) == 0:
+                    first_message = [
+                        {
+                            "role": "user",
+                            "content": {
+                                "text": user_message,
+                                "media": st.session_state.generated_image_path
+                            }
+                        }
+                    ]
+                    response_text, response_media = handle_chat_editing(first_message, st.session_state.chat_history)
+                    update_chat_history(msg_role="user",
+                                        msg_text=first_message[0]["content"]["text"],
+                                        msg_media=first_message[0]["content"]["media"])
+                else:
+                    response_text, response_media = handle_chat_editing(user_message, st.session_state.chat_history)
+                    update_chat_history(msg_role="user", msg_text=user_message)
+                update_chat_history(msg_role="model", msg_text=response_text, msg_media=response_media)
+            st.rerun()
