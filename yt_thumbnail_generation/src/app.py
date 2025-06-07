@@ -182,7 +182,7 @@ def update_chat_history(msg_role: str, msg_text=None, msg_media=None):
     if msg_media:
         msg_content["media"] = msg_media
 
-    if content:
+    if msg_content:
         st.session_state.chat_history.append({
             "role": msg_role,
             "content": msg_content
@@ -462,11 +462,11 @@ if st.session_state.generated_image_path and st.session_state.enable_chat_edit:
                         }
                     ]
                     response_text, response_media = handle_chat_editing(first_message, st.session_state.chat_history)
-                    update_chat_history(role="user",
-                                        text=first_message[0]["content"]["text"],
-                                        media=first_message[0]["content"]["media"])
+                    update_chat_history(msg_role="user",
+                                        msg_text=first_message[0]["content"]["text"],
+                                        msg_media=first_message[0]["content"]["media"])
                 else:
                     response_text, response_media = handle_chat_editing(user_message, st.session_state.chat_history)
-                    update_chat_history(role="user", text=user_message)
-                update_chat_history(role="model", text=response_text, media=response_media)
+                    update_chat_history(msg_role="user", msg_text=user_message)
+                update_chat_history(msg_role="model", msg_text=response_text, msg_media=response_media)
             st.rerun()
