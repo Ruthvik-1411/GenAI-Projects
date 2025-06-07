@@ -9,6 +9,7 @@ from utils.utility import construct_contents
 from core.video_analyzer import VideoAnalyzer
 from core.prompt_generator import PromptGenerator
 from core.image_generator import ImageGenerator
+from core.image_editor import ImageEditor
 from core.prompts import video_analyzer_prompt, imagen_prompt_generator
 
 from google import genai
@@ -40,12 +41,17 @@ with st.sidebar:
         # value="" #Add key for testing or in UI
     )
 
-    st.header("Workflow Mode")
-    workflow_mode = st.radio(
-        "Choose processing mode:",
-        ("Edit & Review", "Automated"),
-        key="workflow_mode",
-        disabled=False
+    # st.header("Workflow Mode")
+    # workflow_mode = st.radio(
+    #     "Choose processing mode:",
+    #     ("Edit & Review", "Automated"),
+    #     key="workflow_mode",
+    #     disabled=False
+    # )
+    enable_chat_edit = st.checkbox(
+        "Enable Inline Chat Editing",
+        value=False,
+        key="enable_chat_edit"
     )
 
 video_url_input = st.text_input(
@@ -94,6 +100,8 @@ if 'imagen_prompter' not in st.session_state:
     st.session_state.imagen_prompter = ""
 if 'image_generator' not in st.session_state:
     st.session_state.image_generator = ""
+if 'image_editor' not in st.session_state:
+    st.session_state.image_editor = ""
 
 def validate_api_key(apikey):
     """Validate api key"""
@@ -156,6 +164,33 @@ def generate_image_from_prompt(prompt, title, model):
         st.session_state.error_message = f"Error occured while generating image: {e}"
         return False, st.session_state.error_message, None
 
+def handle_chat_editing(message, history: list=[]):
+    """Wrapper to handle chat session and image editing"""
+    try:
+        response = st.session_state.image_editor.chat_session(message, history)
+        response_text, response_media = st.session_state.image_editor.serialize_response(response, str(len(history)))
+        return response_text, response_media
+    except Exception as e:
+        return f"Error during chat processing: {e}", None
+
+def update_chat_history(role: str, text=None, media=None):
+    """Updates chat history in session state"""
+    content = {}
+
+    if text:
+        content["text"] = text
+    if media:
+        content["media"] = media
+    
+    if content:
+        st.session_state.chat_history.append({
+            "role": role,
+            "content": content
+        })
+        print(f"History: {st.session_state.chat_history}")
+        return True
+    return False
+
 # --- Main Workflow ---
 
 col1_btn, col2_btn_clear = st.columns([3,1])
@@ -193,6 +228,9 @@ with st.expander("Step 1: Video Processing", expanded=True):
             )
 
             st.session_state.image_generator = ImageGenerator(
+                client=result
+            )
+            st.session_state.image_editor = ImageEditor(
                 client=result
             )
             with st.spinner("Processing video..."):
@@ -367,3 +405,68 @@ with st.expander("Step 4: Generate Thumbnail", expanded=st.session_state.prompt_
                     )
             else:
                 st.error("Generated image file not found. Something went wrong.")
+            st.markdown("##### Want to make changes to this image? Enable inline chat editing from the sidebar.")
+
+# --- Editing Generated Thumbnail ---
+if st.session_state.generated_image_path and st.session_state.enable_chat_edit:
+    with st.expander("Step 5: Edit Thumbnail via Chat", expanded=True):
+        if 'chat_history' not in st.session_state:
+            st.session_state.chat_history = []
+        
+        col_chat, col_reset = st.columns([4, 1])
+        with col_chat:
+            st.markdown("### Need to improve this image?")
+        with col_reset:
+            if st.button("Reset Chat", key="reset_chat_btn"):
+                st.session_state.chat_history = []
+                st.rerun()
+        with st.container():
+            for i, msg in enumerate(st.session_state.chat_history):
+                role = msg["role"]
+                if role == "model":
+                    role = "assistant"
+                with st.chat_message(role):
+                    content = msg["content"]
+                    if content.get("text"):
+                        st.markdown(content["text"])
+                    if content.get("media") and os.path.exists(content["media"]):
+                        if role == "user":
+                            st.image(content["media"], caption="Input Image", width=480)
+                        elif role == "assistant":
+                            col_img, col_dl = st.columns([1, 1])
+                            with col_dl:
+                                with open(content["media"], "rb") as img_file:
+                                    st.download_button(
+                                        label="",
+                                        icon=":material/download:",
+                                        data=img_file,
+                                        file_name=os.path.basename(content["media"]),
+                                        mime="image/png",
+                                        key=f"download_btn_{i}",
+                                        help="Download this image"
+                                    )
+                            with col_img:
+                                st.image(content["media"], caption="Generated Image", use_container_width=True)
+        
+        user_message = st.chat_input("Need to add text, change style? Anything you want to change, just ask.")
+        if user_message:
+            with st.spinner("Editing image based on your input..."):
+                if len(st.session_state.chat_history) == 0:
+                    first_message = [
+                        {
+                            "role": "user",
+                            "content": {
+                                "text": user_message,
+                                "media": st.session_state.generated_image_path
+                            }
+                        }
+                    ]
+                    response_text, response_media = handle_chat_editing(first_message, st.session_state.chat_history)
+                    update_chat_history(role="user",
+                                        text=first_message[0]["content"]["text"],
+                                        media=first_message[0]["content"]["media"])
+                else:
+                    response_text, response_media = handle_chat_editing(user_message, st.session_state.chat_history)
+                    update_chat_history(role="user", text=user_message)
+                update_chat_history(role="model", text=response_text, media=response_media)
+            st.rerun()
