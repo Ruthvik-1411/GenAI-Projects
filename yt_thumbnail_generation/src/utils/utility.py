@@ -4,8 +4,8 @@ import re
 import os
 import base64
 import logging
-import requests
 from typing import Union, List, Dict, Any
+import requests
 from google.genai import types
 
 logger = logging.getLogger(__name__)
