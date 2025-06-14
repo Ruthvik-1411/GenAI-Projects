@@ -3,6 +3,7 @@
 
 import os
 from datetime import datetime, timedelta, timezone
+from typing import Union, List, Dict, Any
 import streamlit as st
 from video_processor.processor import get_video_data
 from utils.utility import construct_contents
@@ -23,7 +24,7 @@ with st.sidebar:
     st.header("Config")
     prompt_model_selector = st.selectbox(
         "Prompt Generation Model",
-        ("gemini-2.0-flash-001", "gemini-2.5-flash"),
+        ("gemini-2.0-flash-001", "gemini-2.5-flash-preview-05-20", "gemini-2.5-pro-preview-06-05"),
         key="prompt_model"
     )
 
@@ -56,7 +57,7 @@ with st.sidebar:
 
 video_url_input = st.text_input(
     label="Youtube Video URL",
-    placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    placeholder="https://www.youtube.com/watch?v=2lAe1cqCOXo",
     key="video_url"
 )
 
@@ -71,7 +72,7 @@ num_snapshots_input = st.number_input(
 
 # --- Initialize session state variables ---
 if 'video_processor_progress' not in st.session_state:
-    st.session_state.video_processor_progress = st.progress(0)
+    st.session_state.video_processor_progress = None
 if 'video_processed' not in st.session_state:
     st.session_state.video_processed = False
 if 'video_title' not in st.session_state:
@@ -103,7 +104,7 @@ if 'image_generator' not in st.session_state:
 if 'image_editor' not in st.session_state:
     st.session_state.image_editor = ""
 
-def validate_api_key(apikey):
+def validate_api_key(apikey: str):
     """Validate api key"""
     if not apikey:
         return False, "API Key is missing."
@@ -114,7 +115,7 @@ def validate_api_key(apikey):
 
     return True, client
 
-def get_video_info_and_process(url, num_snaps):
+def get_video_info_and_process(url: str, num_snaps: int=5):
     """Video processing logic
     Returns: (success_flag, message, media_paths, video_metadata, downloaded_path)
     """
@@ -127,49 +128,62 @@ def get_video_info_and_process(url, num_snaps):
         st.session_state.error_message = "Could not process the video URL. Please check and try again."
         return False, st.session_state.error_message, [], {}, None
 
-    video_metadata, media_path = get_video_data(url=url, num_snaps=num_snaps)
-    st.session_state.video_title = video_metadata.get("title")
+    try:
+        video_metadata, media_path = get_video_data(url=url, num_snaps=num_snaps)
+        st.session_state.video_title = video_metadata.get("title")
 
-    if isinstance(media_path, list):
-        st.session_state.media_paths = media_path
-        st.session_state.video_metadata = video_metadata
-        st.session_state.video_downloaded_path = None
-        return True, "Snapshots taken.", media_path, video_metadata, None
-    if isinstance(media_path, str):
-        st.session_state.video_downloaded_path = media_path
-        st.session_state.video_metadata = video_metadata
-        st.session_state.media_paths = []
-        return True, "Video downloaded successfully.", [], video_metadata, media_path
-    return False, "File too big", [], {}, ""
+        if isinstance(media_path, list):
+            st.session_state.media_paths = media_path
+            st.session_state.video_metadata = video_metadata
+            st.session_state.video_downloaded_path = None
+            return True, "Snapshots taken.", media_path, video_metadata, None
+        if isinstance(media_path, str):
+            st.session_state.video_downloaded_path = media_path
+            st.session_state.video_metadata = video_metadata
+            st.session_state.media_paths = []
+            return True, "Video downloaded successfully.", [], video_metadata, media_path
+        return False, "File too big", [], {}, ""
+    except Exception as e:
+        return False, f"Error occured while processing video: {e}", [], {}, ""
 
-def generate_description_from_video_data(video_metadata, media_content, model):
+def generate_description_from_video_data(video_metadata: dict, media_content: str, model: str=""):
     """Wrapper to generate video desciption from metadata and media contents"""
     message_content = construct_contents(video_metadata, media_content)
 
-    video_description = st.session_state.video_analyzer.get_gemini_response(message_content)
+    video_description, status = st.session_state.video_analyzer.get_gemini_response(message_content, model)
+    if video_description:
+        return True, "Description generated.", video_description
+    else:
+        return False, f"Error occured while generating video description: {status}", ""
 
-    return True, "Description generated.", video_description
-
-def generate_prompt_from_description(description, model):
+def generate_prompt_from_description(description: str, model: str=""):
     """Wrapper to generate prompt from video description"""
-    imagen_prompt = st.session_state.imagen_prompter.get_imagen_prompt(description)
-    return True, "Image prompt generated.", imagen_prompt
+    imagen_prompt, status = st.session_state.imagen_prompter.get_imagen_prompt(description, model)
+    if imagen_prompt:
+        return True, "Image prompt generated.", imagen_prompt
+    else:
+        return False, f"Error occured while generating image generation prompt: {status}", ""
 
-def generate_image_from_prompt(prompt, title, model):
+def generate_image_from_prompt(prompt: str, title: str, model: str=""):
     """Wrapper to generate image from prompt"""
     try:
-        image_result = st.session_state.image_generator.generate_image(prompt, title)
-        return True, "Thumbnail image generated successfully!", image_result
+        image_result = st.session_state.image_generator.generate_image(prompt, title, model)
+        if image_result:
+            return True, "Thumbnail image generated successfully!", image_result
+        return False, "Something went wrong while generating image, please try again.", None
     except Exception as e:
         st.session_state.error_message = f"Error occured while generating image: {e}"
         return False, st.session_state.error_message, None
 
-def handle_chat_editing(message, history: list):
+def handle_chat_editing(message: Union[List[Dict[str, Any]], str], title: str, history: list):
     """Wrapper to handle chat session and image editing"""
     try:
-        response = st.session_state.image_editor.chat_session(message, history)
-        text, media = st.session_state.image_editor.serialize_response(response, str(len(history)))
-        return text, media
+        response, status = st.session_state.image_editor.chat_session(message, history)
+        if response:
+            text, media = st.session_state.image_editor.serialize_response(response, title, str(len(history)))
+            return text, media
+        else:
+            return f"Error occured during chat processing: {status}", None
     except Exception as e:
         return f"Error during chat processing: {e}", None
 
@@ -233,7 +247,7 @@ with st.expander("Step 1: Video Processing", expanded=True):
             st.session_state.image_editor = ImageEditor(
                 client=result
             )
-            with st.spinner("Processing video..."):
+            with st.spinner("Processing video, this might take a while..."):
                 success, msg, paths, metadata, dl_path = get_video_info_and_process(
                     st.session_state.video_url,
                     st.session_state.num_snapshots
@@ -450,6 +464,7 @@ if st.session_state.generated_image_path and st.session_state.enable_chat_edit:
 
         user_message = st.chat_input("Need to add text, change style? Anything you want to change, just ask.")
         if user_message:
+            image_title_in_chatmode = st.session_state.generated_image_path.split("\\")[-1].split(".")[0] # for windows
             with st.spinner("Editing image based on your input..."):
                 if len(st.session_state.chat_history) == 0:
                     first_message = [
@@ -461,12 +476,16 @@ if st.session_state.generated_image_path and st.session_state.enable_chat_edit:
                             }
                         }
                     ]
-                    response_text, response_media = handle_chat_editing(first_message, st.session_state.chat_history)
+                    response_text, response_media = handle_chat_editing(message=first_message,
+                                                                        title=image_title_in_chatmode,
+                                                                        history=st.session_state.chat_history)
                     update_chat_history(msg_role="user",
                                         msg_text=first_message[0]["content"]["text"],
                                         msg_media=first_message[0]["content"]["media"])
                 else:
-                    response_text, response_media = handle_chat_editing(user_message, st.session_state.chat_history)
+                    response_text, response_media = handle_chat_editing(message=user_message,
+                                                                        title=image_title_in_chatmode,
+                                                                        history=st.session_state.chat_history)
                     update_chat_history(msg_role="user", msg_text=user_message)
                 update_chat_history(msg_role="model", msg_text=response_text, msg_media=response_media)
             st.rerun()
