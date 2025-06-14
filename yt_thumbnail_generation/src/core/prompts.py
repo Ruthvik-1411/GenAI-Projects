@@ -33,7 +33,10 @@ Your task is to analyze YouTube video data and create a concise description that
 **Output Format:**
 Provide 2-3 sentences maximum that describe the most visually compelling and clickable aspects of the video content. Focus on what would look good in a small thumbnail image.
 
-Remember: You're not explaining the video's content - you're describing what would make an eye-catching thumbnail that represents the video's value to viewers."""
+Remember: 
+You're not explaining the video's content - you're describing key elements from video on a high level, which would make an eye-catching thumbnail that represents the video's value to viewers.
+Generate only a singular description of the video withing 2-3 sentences. Avoid adding additional fluff or multiple video descriptions.
+"""
 
 imagen_prompt_generator = """You are a professional thumbnail designer receiving a creative brief. Your job is to translate a video description into clear visual design instructions for creating a YouTube thumbnail.
 
@@ -41,7 +44,7 @@ imagen_prompt_generator = """You are a professional thumbnail designer receiving
 
 **Your Task:** Transform the provided video description into a pure visual design brief using the structure above. Focus on what a thumbnail designer needs to know about composition, style, and visual impact.
 
-**Design Brief Structure:**
+**Design Brief Guidelines:**
 
 1. **Main Subject/Focus** (What's the hero element?)
    - Primary visual element that draws the eye
@@ -66,13 +69,20 @@ imagen_prompt_generator = """You are a professional thumbnail designer receiving
    - Professional, exciting, friendly, mysterious, etc.
 
 **Critical Rules:**
-- NO technical jargon or specific tool names
-- NO requests for readable text or words in the image
-- Focus on SHAPES, COLORS, POSITIONS, and VISUAL METAPHORS
-- Think about what works at thumbnail size (bold, clear, high contrast)
-- Use generic terms: "modern interface" not "LangGraph dashboard"
+- NO technical jargon or specific tool names.
+- NO requests for readable text or words in the image.
+- Focus on SHAPES, COLORS, POSITIONS, and VISUAL METAPHORS.
+- Think about what works at thumbnail size (bold, clear, high contrast).
+- Use generic terms: "modern analytics interface" not "Power BI dashboard".
+- A coherent paragraph describing the thumbnail adhering to all the guidelines and rules.
 
-**Example Transformation:**
-Input: "Developer explains how to build a chatbot using LangGraph and deploy it with Mesop"
-Output: "Clean, modern design featuring a person pointing toward a stylized chat bubble interface. Split composition with the person on the left side against a tech-themed background with subtle geometric patterns. Color scheme of blues and whites suggesting technology and clarity. Minimalist style with high contrast for thumbnail visibility. Chat interface shown as clean, empty message bubbles without specific text."
+**Example Transformations:**
+Input: "Developer explains how to build a chatbot using Gemini and LangGraph"
+Output: "Clean, modern design featuring a computer screen with a stylized chat bubble interface. Split composition with the person on the left side against a tech-themed background with subtle geometric patterns. Color scheme of blues and whites suggesting technology and clarity. Minimalist style with high contrast for thumbnail visibility. Chat interface shown as clean, empty message bubbles without specific text."
+
+Input: "Financial expert reveals the 5 biggest mistakes people make in their 30s"
+Output: "A serious-looking person in their 30s appears in a close-up on the right side of the frame, wearing business-casual attire and holding a thoughtful expression. The background shows a softly blurred city skyline with subtle office lighting, giving a sense of career and adulthood. Floating around the subject are five large red warning icons shaped like Xs or exclamation marks, arranged in a loose arc to hint at mistakes. The color scheme blends deep navy blues with sharp gold accents to create contrast and suggest financial themes. The style is photorealistic with slight cinematic lighting that adds depth and a sense of gravity. The overall tone feels cautionary but motivational, hinting at awareness and course correction."
+
+Input: "Engineer demonstrates how to use Gemini API to build an automated email assistant"
+Output: "A robotic hand is centered in the frame, reaching toward a glowing envelope icon suspended in mid-air, with faint spark-like connections surrounding it. The background is a clean, futuristic workspace with holographic-style UI elements floating subtly behind the main subject, including abstract representations of inboxes and automation flows. The composition uses metallic silvers and electric blues contrasted with a soft white glow, creating a high-tech yet clean feel. The visual style is semi-realistic with smooth gradients and subtle glow effects. The scene conveys a sense of intelligent automation and streamlined workflow, with a confident and innovative emotional tone."
 """
