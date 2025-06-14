@@ -82,7 +82,8 @@ def generate_snapshots(video_path: str, num_snapshots: int=5, output_dir: str="s
 
     return snapshots_filepath
 
-def get_video_data(url: str, num_snaps: int = 5, min_duration: int = 120, download_dir: str="downloads"):
+def get_video_data(url: str, num_snaps: int=5, 
+                   min_duration: int=120, download_dir: str="downloads"):
     """Process youtube video and get required data"""
     with yt_dlp.YoutubeDL() as ydl:
         info_dict = ydl.extract_info(url, download=False)

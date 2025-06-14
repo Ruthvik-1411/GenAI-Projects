@@ -5,6 +5,7 @@ import os
 import base64
 import logging
 import requests
+from typing import Union, List, Dict, Any
 from google.genai import types
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-def clean_title(title_str):
+def clean_title(title_str: str):
     """Clean the video title"""
     title = re.sub(r'[\\/*?:"<>|]', '_', title_str) # special chars
     title = re.sub(r'[^\x00-\x7F]+', '', title) # no ascii
@@ -24,12 +25,12 @@ def clean_title(title_str):
 
     return title
 
-def strip_escape_seqs(text):
+def strip_escape_seqs(text: str):
     """Strip all ansi escape seqs that are received while downloading callback"""
     ansi_escape_chars = re.compile(r'(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~]')
     return ansi_escape_chars.sub('', text)
 
-def get_file_data(file_path):
+def get_file_data(file_path: str):
     """Convert file data to base64"""
     try:
         file_content = open(file_path, 'rb').read()
@@ -39,7 +40,7 @@ def get_file_data(file_path):
         logger.error(f"Error processing image: {e}")
         return None
 
-def save_binary_file(file_name, data, thumbnails_dir = "thumbnails"):
+def save_binary_file(file_name: str, data, thumbnails_dir = "thumbnails"):
     """Save the image to thumbnails dir"""
     if not os.path.exists(thumbnails_dir):
         os.makedirs(thumbnails_dir)
@@ -53,7 +54,7 @@ def save_binary_file(file_name, data, thumbnails_dir = "thumbnails"):
     logger.info(f"File saved to to: {file_path}")
     return file_path
 
-def get_subtitle_content(subtitle_url, include_time = False):
+def get_subtitle_content(subtitle_url: str, include_time: bool = False):
     """Get the subtitles contents from url"""
     subtitles = []
     subtitle_text = ""
@@ -80,7 +81,7 @@ def get_subtitle_content(subtitle_url, include_time = False):
 
     return subtitle_text
 
-def process_video_metadata(video_metadata):
+def process_video_metadata(video_metadata: dict):
     """Process the video metadata and return a readable format of fields and their values"""
     metadata_description = ""
     fields_of_interest = ["title", "description","categories","tags"]
@@ -105,7 +106,7 @@ def process_video_metadata(video_metadata):
 
     return metadata_description
 
-def construct_contents(video_metadata, media_path):
+def construct_contents(video_metadata: dict, media_path: str):
     """Construct contents based on media received"""
     if isinstance(media_path, str):
         contents = [
@@ -132,7 +133,7 @@ def construct_contents(video_metadata, media_path):
 
     return contents
 
-def deserialize_parts(content_data):
+def deserialize_parts(content_data: dict):
     """Converts content stored in db/session_state to parts"""
     parts = []
     if "text" in content_data:
@@ -147,7 +148,7 @@ def deserialize_parts(content_data):
 
     return parts
 
-def history_to_contents(message, history: list=""):
+def history_to_contents(message: Union[List[Dict[str, Any]], str], history: list=""):
     """Converts list of messages to llm consumable format"""
     contents = []
 

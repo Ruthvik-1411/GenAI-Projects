@@ -153,16 +153,14 @@ def generate_description_from_video_data(video_metadata: dict, media_content: st
     video_description, status = st.session_state.video_analyzer.get_gemini_response(message_content, model)
     if video_description:
         return True, "Description generated.", video_description
-    else:
-        return False, f"Error occured while generating video description: {status}", ""
+    return False, f"Error occured while generating video description: {status}", ""
 
 def generate_prompt_from_description(description: str, model: str=""):
     """Wrapper to generate prompt from video description"""
     imagen_prompt, status = st.session_state.imagen_prompter.get_imagen_prompt(description, model)
     if imagen_prompt:
         return True, "Image prompt generated.", imagen_prompt
-    else:
-        return False, f"Error occured while generating image generation prompt: {status}", ""
+    return False, f"Error occured while generating image generation prompt: {status}", ""
 
 def generate_image_from_prompt(prompt: str, title: str, model: str=""):
     """Wrapper to generate image from prompt"""
@@ -182,8 +180,7 @@ def handle_chat_editing(message: Union[List[Dict[str, Any]], str], title: str, h
         if response:
             text, media = st.session_state.image_editor.serialize_response(response, title, str(len(history)))
             return text, media
-        else:
-            return f"Error occured during chat processing: {status}", None
+        return f"Error occured during chat processing: {status}", None
     except Exception as e:
         return f"Error during chat processing: {e}", None
 
