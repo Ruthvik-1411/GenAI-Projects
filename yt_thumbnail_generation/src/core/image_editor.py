@@ -4,6 +4,7 @@ import mimetypes
 from utils.utility import history_to_contents, save_binary_file
 from google.genai import types
 from google.genai.client import Client as geminiClient
+from google.genai.errors import ClientError, ServerError
 
 class ImageEditor():
     """Image editor class"""
@@ -17,17 +18,26 @@ class ImageEditor():
 
     def chat_session(self, message, history: list):
         """Chat session to edit messages"""
-        response = self.client.models.generate_content(
-            model=self.model,
-            config = types.GenerateContentConfig(
-                response_modalities=["IMAGE","TEXT"],
-                response_mime_type="text/plain",
-            ),
-            contents=history_to_contents(message, history)
-        )
-        return response
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                config = types.GenerateContentConfig(
+                    response_modalities=["IMAGE","TEXT"],
+                    response_mime_type="text/plain",
+                ),
+                contents=history_to_contents(message, history)
+            )
+            return response, None
+        except ClientError as e:
+            # Invalid api key or client side error
+            return None, str(e)
+        except ServerError as e:
+            # Server side error
+            return None, str(e)
+        except Exception as e:
+            return None, str(e)
 
-    def serialize_response(self, response, version):
+    def serialize_response(self, response, image_name: str, version: str):
         """Converts llm response to savable format"""
         response_text = ""
         response_media = ""
@@ -42,11 +52,11 @@ class ImageEditor():
             if part.inline_data and part.inline_data.data:
                 image_data = part.inline_data.data
                 file_extension = mimetypes.guess_extension(part.inline_data.mime_type)
-                saved_media_path = save_binary_file(f"image_edit{version}{file_extension}",
+                saved_media_path = save_binary_file(f"{image_name}_edit{version}{file_extension}",
                                                     image_data)
                 response_media = saved_media_path
             else:
-                print(f"TEXT: {part.text}")
+                # print(f"TEXT: {part.text}")
                 response_text = part.text
 
         return response_text, response_media

@@ -3,10 +3,19 @@
 import re
 import os
 import base64
+import logging
+from typing import Union, List, Dict, Any
 import requests
 from google.genai import types
 
-def clean_title(title_str):
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+def clean_title(title_str: str):
     """Clean the video title"""
     title = re.sub(r'[\\/*?:"<>|]', '_', title_str) # special chars
     title = re.sub(r'[^\x00-\x7F]+', '', title) # no ascii
@@ -16,36 +25,36 @@ def clean_title(title_str):
 
     return title
 
-def strip_escape_seqs(text):
+def strip_escape_seqs(text: str):
     """Strip all ansi escape seqs that are received while downloading callback"""
     ansi_escape_chars = re.compile(r'(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~]')
     return ansi_escape_chars.sub('', text)
 
-def get_file_data(file_path):
+def get_file_data(file_path: str):
     """Convert file data to base64"""
     try:
         file_content = open(file_path, 'rb').read()
         file_data = base64.b64encode(file_content).decode("utf-8")
         return file_data
     except Exception as e:
-        print(f"Error processing image: {e}")
+        logger.error(f"Error processing image: {e}")
         return None
 
-def save_binary_file(file_name, data, thumbnails_dir = "thumbnails"):
+def save_binary_file(file_name: str, data, thumbnails_dir = "thumbnails"):
     """Save the image to thumbnails dir"""
     if not os.path.exists(thumbnails_dir):
         os.makedirs(thumbnails_dir)
-        print(f"Created thumbnails directory: {thumbnails_dir}")
+        logger.info(f"Created thumbnails directory: {thumbnails_dir}")
 
     file_path = os.path.join(thumbnails_dir, file_name)
     file = open(file_path, "wb")
     file.write(data)
     file.close()
 
-    print(f"File saved to to: {file_path}")
+    logger.info(f"File saved to to: {file_path}")
     return file_path
 
-def get_subtitle_content(subtitle_url, include_time = False):
+def get_subtitle_content(subtitle_url: str, include_time: bool = False):
     """Get the subtitles contents from url"""
     subtitles = []
     subtitle_text = ""
@@ -72,7 +81,7 @@ def get_subtitle_content(subtitle_url, include_time = False):
 
     return subtitle_text
 
-def process_video_metadata(video_metadata):
+def process_video_metadata(video_metadata: dict):
     """Process the video metadata and return a readable format of fields and their values"""
     metadata_description = ""
     fields_of_interest = ["title", "description","categories","tags"]
@@ -89,18 +98,17 @@ def process_video_metadata(video_metadata):
                 subtitle_text = get_subtitle_content(formatted_version.get("url"))
                 metadata_description +=f"**SUBTITLES**: {subtitle_text} \n\n"
             else:
-                print("Unable to find json3 version for subtitles.")
+                logger.debug("Unable to find json3 version for subtitles.")
         else:
-            print("Subtitles not found for english language.")
+            logger.debug("Subtitles not found for english language.")
     else:
         metadata_description +="**SUBTITLES**: N/A"
 
     return metadata_description
 
-def construct_contents(video_metadata, media_path):
+def construct_contents(video_metadata: dict, media_path: str):
     """Construct contents based on media received"""
     if isinstance(media_path, str):
-        print("Processing video file")
         contents = [
             f"Video Metadata: {process_video_metadata(video_metadata)}",
             "Video file:",
@@ -110,7 +118,6 @@ def construct_contents(video_metadata, media_path):
             "Description:"
         ]
     elif isinstance(media_path, list):
-        print("Processing snapshots")
         contents = [
             f"Video Metadata: {process_video_metadata(video_metadata)}",
             "Snapshots of video:"
@@ -123,10 +130,10 @@ def construct_contents(video_metadata, media_path):
                 ),
             )
             contents.append("Description:")
-    print("Contents length",len(contents))
+
     return contents
 
-def deserialize_parts(content_data):
+def deserialize_parts(content_data: dict):
     """Converts content stored in db/session_state to parts"""
     parts = []
     if "text" in content_data:
@@ -141,7 +148,7 @@ def deserialize_parts(content_data):
 
     return parts
 
-def history_to_contents(message, history: list=""):
+def history_to_contents(message: Union[List[Dict[str, Any]], str], history: list=""):
     """Converts list of messages to llm consumable format"""
     contents = []
 
