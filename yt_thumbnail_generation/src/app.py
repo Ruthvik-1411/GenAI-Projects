@@ -72,7 +72,7 @@ num_snapshots_input = st.number_input(
 
 # --- Initialize session state variables ---
 if 'video_processor_progress' not in st.session_state:
-    st.session_state.video_processor_progress = None
+    st.session_state.video_processor_progress = st.progress(0)
 if 'video_processed' not in st.session_state:
     st.session_state.video_processed = False
 if 'video_title' not in st.session_state:
@@ -198,7 +198,6 @@ def update_chat_history(msg_role: str, msg_text=None, msg_media=None):
             "role": msg_role,
             "content": msg_content
         })
-        print(f"History: {st.session_state.chat_history}")
         return True
     return False
 
