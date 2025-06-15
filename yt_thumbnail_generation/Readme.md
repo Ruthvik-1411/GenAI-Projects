@@ -69,7 +69,9 @@ In the chat space, simple prompts can be provided, like "Add abc text with black
 
 > Feel free to add your own logic on top of this or remove any redundacies in the codebase. One feature that was missed out was to add a refine option to let another model modify the text generated for image generation, since humans are the end users and need to review the thumbnail, it would be fit for humans to make these changes rather than the bot.
 ### Screenshots
-(Video demos coming soon)
+Video demos
+* Using 2.0 Flash Image Generation: [2.0 FLASH demo](https://youtu.be/7eOuXiq0qLU)
+* Using Imagen: [Imagen demo](https://youtu.be/t3gIyd-Kmfk)
 
 Following are some screenshots for the overall application and each step in the process. Click on the image to see it in more detail.
 
