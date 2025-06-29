@@ -13,4 +13,9 @@ The server uses Quart for the service endpoints as it had a lot of support and f
 2. Processor: This task handles all communication with the gemini live api(ws endpoint). It starts the session with gemini live, reads from audio queue and adds the response receieved from gemini live api to a response queue.
 3. Sender: This task reads the data from the response queue and sends events/audio back the client.
 
+**Client side:**<br>
+<img src="https://github.com/Ruthvik-1411/GenAI-Projects/blob/main/gemini_live_boilerplate/assets/sample_ui.png">
+
+
+
 TODO: update this documentation to be more descriptive and explain interaction of all events.
