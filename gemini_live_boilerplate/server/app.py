@@ -6,12 +6,11 @@ import json
 import base64
 import asyncio
 import logging
-from quart import Quart, websocket
-
 from dotenv import load_dotenv
-load_dotenv()
-
+from quart import Quart, websocket
 from gemini_live_handler import GeminiClient
+
+load_dotenv()
 
 gemini_api_key = os.getenv("AISTUDIO_API_KEY")
 

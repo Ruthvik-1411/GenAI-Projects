@@ -1,3 +1,4 @@
+"""Gemini live client handler"""
 import os
 import base64
 from google import genai
