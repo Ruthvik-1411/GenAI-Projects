@@ -1,3 +1,5 @@
+"""Module for backend websocket server"""
+# pylint: disable=line-too-long,too-many-branches,unused-variable
 import os
 import time
 import json
@@ -57,10 +59,10 @@ class WebSocketHandler:
         try:
             while True:
                 message = await self.websocket.receive()
-                
+
                 data = json.loads(message)
                 message_event = data.get("event")
-                
+
                 logger.debug(f"[{self.connection_id}] Received: {message_event}")
 
                 if message_event == "start_session":
@@ -69,7 +71,7 @@ class WebSocketHandler:
                     # Continue receiving after setting event
                     continue
 
-                elif message_event == "audio_chunk":
+                if message_event == "audio_chunk":
                     # Handle audio data from client
                     audio_data = data.get("data")
                     if audio_data:
@@ -84,7 +86,7 @@ class WebSocketHandler:
                     logger.info(f"[{self.connection_id}] End session event received.")
                     # Exit this task gracefully. The main handler will clean up.
                     return
-                
+
                 # To handle client side interrupt in future
                 # elif message_event == "interrupt":
                 #     # Client wants to interrupt
@@ -133,7 +135,7 @@ class WebSocketHandler:
             try:
                 logger.info(f"[{self.connection_id}] Gemini processor waiting for 'start_session' event from client.")
                 await asyncio.wait_for(
-                    self.session_started_event.wait(), 
+                    self.session_started_event.wait(),
                     timeout=30
                 )
             except asyncio.TimeoutError:
@@ -141,8 +143,8 @@ class WebSocketHandler:
                 logger.warning(f"[{self.connection_id}] Timed out waiting for 'start_session' event.")
                 # Send an error message to the client
                 await self.response_queue.put({
-                    "event": "error", 
-                    "data": f"Session timed out after 30 seconds. Please reconnect."
+                    "event": "error",
+                    "data": "Session timed out after 30 seconds. Please reconnect."
                 })
                 # Exit this task gracefully. The main handler will clean up.
                 return
@@ -157,7 +159,7 @@ class WebSocketHandler:
                 # Send initial response from bot
                 logger.info(f"[{self.connection_id}] Sending message on behalf of user.")
                 initial_greeting = self.gemini.get_initial_greeter()
-                
+
                 await self._gemini_session.send_client_content(
                     turns=[initial_greeting], turn_complete=True
                 )
@@ -210,7 +212,7 @@ class WebSocketHandler:
         message = {"event": message_event}
         if data is not None:
             message["data"] = data
-        
+
         try:
             await self.websocket.send(json.dumps(message))
             logger.debug(f"[{self.connection_id}] Sent message: {message_event}")
@@ -228,7 +230,7 @@ class WebSocketHandler:
 
                 # The message is already a clean dictionary, can be used directly
                 await self._send_message(message.get("event"), message.get("data"))
-                
+
                 self.response_queue.task_done()
 
         except asyncio.CancelledError:
@@ -255,7 +257,7 @@ class WebSocketHandler:
                 self.audio_queue.task_done()
             except asyncio.QueueEmpty:
                 break
-        
+
         self._clear_response_queue()
 
     async def handle_websocket_connection(self):
@@ -264,7 +266,7 @@ class WebSocketHandler:
         # Initialize Gemini client class
         self.gemini = GeminiClient(api_key=gemini_api_key)
         self._gemini_client_initialized = True
-        
+
         try:
             # Start tasks
             receiver = asyncio.create_task(self._receive_from_client(), name=f"receiver[{self.connection_id}]")
@@ -283,9 +285,9 @@ class WebSocketHandler:
             for task in done:
                 exc = task.exception()
                 if exc:
-                     logger.error(f"[{self.connection_id}] Task {task.get_name()} failed with exception: {exc}", exc_info=exc)
+                    logger.error(f"[{self.connection_id}] Task {task.get_name()} failed with exception: {exc}", exc_info=exc)
                 else:
-                     logger.info(f"[{self.connection_id}] Task {task.get_name()} completed first.")
+                    logger.info(f"[{self.connection_id}] Task {task.get_name()} completed first.")
 
         # TODO: Hnadle websockets.exceptions.ConnectionClosedOK
         except Exception as e:
@@ -296,7 +298,7 @@ class WebSocketHandler:
             for task in self._tasks:
                 if not task.done():
                     task.cancel()
-            
+
             # Wait for all tasks to acknowledge cancellation
             await asyncio.gather(*self._tasks, return_exceptions=True)
 

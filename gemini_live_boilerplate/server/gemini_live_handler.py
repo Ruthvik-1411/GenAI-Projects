@@ -4,10 +4,10 @@ from google import genai
 from google.genai import types as genai_types
 
 # TODO: Add more specific prompt + tool declarations
-
-system_instruction_prompt = "A warm and charming helpful female agent good at helping users with their queries."
+from prompt import SYSTEM_PROMPT
 
 class GeminiClient:
+    """Gemini client class"""
     def __init__(self,
                  api_key: str,
                  model_key: str="gemini-2.0-flash-exp"):
@@ -26,11 +26,11 @@ class GeminiClient:
                 prebuilt_voice_config=genai_types.PrebuiltVoiceConfig(voice_name="Aoede")
             ),
         )
-        
+
         self.tool_defs = []
 
         self.system_instruction_content = genai_types.Content(
-            parts=[genai_types.Part(text=system_instruction_prompt)],
+            parts=[genai_types.Part(text=SYSTEM_PROMPT)],
             role="system"
         )
         # FIXME: Generation config seems deprecated
@@ -49,13 +49,13 @@ class GeminiClient:
     def convert_audio_for_client(self, audio_data: bytes) -> str:
         """Converts audio data to base64 for client"""
         return base64.b64encode(audio_data).decode("utf-8")
-    
+
     def get_initial_greeter(self):
         """Initiates conversation on behalf of user"""
         user_greeting = "Hello."
-        
+
         initial_user_message = genai_types.Content(
-            role="user", 
+            role="user",
             parts=[genai_types.Part(text=user_greeting)]
         )
         return initial_user_message
