@@ -30,12 +30,12 @@ class Schema:
     """Defines the schema for a function's parameters or return value.
     This aligns with OpenAPI schema.
     """
-    def __init__(self, type: OpenAPITypes, properties: Optional[dict] = None,
+    def __init__(self, arg_type: OpenAPITypes, properties: Optional[dict] = None,
                  required: Optional[list[str]] = None, description: Optional[str] = None,
                  items: Optional['Schema'] = None,
                  enum: Optional[list[str]] = None,
                  default: Optional[any] = None):
-        self.arg_type = type
+        self.arg_type = arg_type
         self.properties = properties if properties is not None else {}
         self.required = required if required is not None else []
         self.description = description
