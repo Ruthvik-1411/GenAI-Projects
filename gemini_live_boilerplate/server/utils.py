@@ -1,3 +1,5 @@
+"""common utils file"""
+# pylint: disable=too-many-positional-arguments
 from enum import Enum
 import inspect
 from typing import get_type_hints, Optional, Union, get_args, get_origin, Annotated
@@ -33,7 +35,7 @@ class Schema:
                  items: Optional['Schema'] = None,
                  enum: Optional[list[str]] = None,
                  default: Optional[any] = None):
-        self.type = type
+        self.arg_type = type
         self.properties = properties if properties is not None else {}
         self.required = required if required is not None else []
         self.description = description
@@ -44,7 +46,7 @@ class Schema:
     def oas_format(self):
         """Converts the Schema object to a dictionary for API consumption."""
         schema_dict = {
-            "type": self.type.value,
+            "type": self.arg_type.value,
         }
         if self.description:
             schema_dict["description"] = self.description

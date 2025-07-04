@@ -1,5 +1,5 @@
 """Module for backend websocket server"""
-# pylint: disable=line-too-long,too-many-branches,unused-variable
+# pylint: disable=line-too-long,too-many-branches,unused-variable,too-many-statements
 import os
 import time
 import json

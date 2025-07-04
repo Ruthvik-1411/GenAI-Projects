@@ -27,7 +27,7 @@ def schedule_meet_tool(
     attendees: Annotated[list[str], "List of the people attending the meeting"],
     topic: Annotated[str, "The subject or the topic of the meeting"],
     date: Annotated[str, "The date of the meeting (e.g., 25/06/2025)"],
-    meeting_room: Annotated[MeetingRoom, f"The name of the meeting room."] = MeetingRoom.VIRTUAL,
+    meeting_room: Annotated[MeetingRoom, "The name of the meeting room."] = MeetingRoom.VIRTUAL,
     time_slot: Annotated[Optional[str], "Time of the meeting (e.g., '14:00'-'15:00'). Immediate schedule if value not provided."] = "Now"):
     """Schedules meeting for a given list of attendees at a given time and date"""
 
