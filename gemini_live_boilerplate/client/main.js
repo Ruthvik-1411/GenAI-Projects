@@ -55,7 +55,6 @@ function updateUserMessage(chunk) {
 }
 
 function updateModelMessage(chunk) {
-    // MODIFICATION: Finalize the user's turn when the model starts speaking.
     finalizeUserTurn();
 
     if (!currentModelBubble) {
@@ -88,15 +87,18 @@ function logMessage(message, type = 'info') {
 }
 
 function displayToolCall(toolCallData) {
-    finalizeModelTurn(); // Also finalize the chat bubble
-    const el = document.createElement('div');
-    el.className = 'log-message function-call';
-    el.innerHTML = `
-        <div class="name">TOOL CALL: ${toolCallData.name}</div>
-        <div class="params">PARAMETERS: ${JSON.stringify(toolCallData.args)}</div>
+    finalizeModelTurn();
+    finalizeUserTurn();
+
+    const toolCallBubble = document.createElement('div');
+    toolCallBubble.className = 'chat-bubble function-call';
+    toolCallBubble.innerHTML = `
+        <p class="tool-call-header"><strong>Tool Call:</strong></p>
+        <p class="name">${toolCallData.name}</p>
+        <div class="params">Parameters: ${JSON.stringify(toolCallData.args, null, 2)}</div>
     `;
-    logContainer.appendChild(el);
-    scrollToBottom(logContainer);
+    chatTranscriptContainer.appendChild(toolCallBubble);
+    scrollToBottom(chatTranscriptContainer);
 }
 
 function base64ToUint8Array(base64) {
@@ -224,7 +226,7 @@ client.on('close', () => {
     micButton.disabled = true;
     micButton.classList.remove('recording');
     micButtonLabel.textContent = 'Start Recording';
-    startSessionButton.disabled = true;
+    startSessionButton.disabled = false;
     startSessionButton.style.display = 'block';
     // micButton.disabled = true;
     if (isRecording) {
@@ -237,8 +239,6 @@ client.on('close', () => {
 startSessionButton.addEventListener('click', () => {
     startSessionButton.disabled = true;
     logMessage('Starting session...', 'status');
-    // We assume your client has a generic send method.
-    // This event name 'start_session' must be handled by your server.
     client.sendStartSession();
 });
 

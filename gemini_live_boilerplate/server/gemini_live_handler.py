@@ -1,22 +1,39 @@
 """Gemini live client handler"""
-import os
 import base64
+import logging
+from typing import Callable, List
 from google import genai
 from google.genai import types as genai_types
 
-# TODO: Add more specific prompt + tool declarations
+# TODO: Add more specific prompt
 from prompt import SYSTEM_PROMPT
+
+# TODO: Use same logger everywhere, don't import new one
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s : %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger(__name__)
 
 class GeminiClient:
     """Gemini client class"""
     def __init__(self,
                  api_key: str,
-                 model_key: str="gemini-2.0-flash-exp"):
+                 model_key: str="gemini-2.0-flash-exp",
+                 tools: List[Callable[..., object]] = None):
         # Initialize gemini client
         self.client = genai.Client(
             api_key=api_key
         )
         self.model_id = model_key
+        self.tools = []
+        self.tool_definitions = []
+        if tools:
+            self.tools = tools
+            for tool in self.tools:
+                self.tool_definitions.append(tool.tool_metadata())
+            logger.info(f"Initializing gemini with tools: {self.tool_definitions}")
         self._setup_config()
 
     def _setup_config(self):
@@ -28,24 +45,49 @@ class GeminiClient:
             ),
         )
 
-        self.tool_defs = []
-
         self.system_instruction_content = genai_types.Content(
             parts=[genai_types.Part(text=SYSTEM_PROMPT)],
             role="system"
         )
-        # FIXME: Generation config seems deprecated
-        self.generation_config = genai_types.GenerationConfig(
-            temperature=0.7
-        )
+
         self.config = genai_types.LiveConnectConfig(
             response_modalities=[genai_types.Modality.AUDIO],
             speech_config=self.speech_config,
-            generation_config=self.generation_config,
+            temperature=0.7,
+            # tools=[genai_types.Tool(function_declarations=[schedule_meet_tool_declaration])],
+            tools=[genai_types.Tool(function_declarations=self.tool_definitions)],
             system_instruction=self.system_instruction_content,
             input_audio_transcription=genai_types.AudioTranscriptionConfig(),
             output_audio_transcription=genai_types.AudioTranscriptionConfig(),
         )
+
+    # TODO: Add support for async functions, identify if they are coroutines and proceed
+    # NOTE: Can add support for injected tool arg like langchain, for later
+    def call_function(self, fc_id: str, fc_name: str, fc_args=None):
+        """Calls the functions that were defined and returns the function response"""
+        func_args = fc_args if fc_args else {}
+
+        for tool in self.tools:
+            if getattr(tool, "name", None) == fc_name:
+                function_result = tool(**func_args)
+                return genai_types.FunctionResponse(
+                    id=fc_id,
+                    name=fc_name,
+                    response={
+                        "result": function_result
+                    }
+                )
+            if callable(tool) and tool.__name__ == fc_name:
+                function_result = tool(**func_args)
+                return genai_types.FunctionResponse(
+                    id=fc_id,
+                    name=fc_name,
+                    response={
+                        "result": function_result
+                    }
+                )
+        logger.error(f"Function with name '{fc_name}' is not defined.")
+        raise ValueError(f"Function with '{fc_name}' is not defined.")
 
     def convert_audio_for_client(self, audio_data: bytes) -> str:
         """Converts audio data to base64 for client"""

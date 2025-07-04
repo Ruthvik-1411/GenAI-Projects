@@ -1,5 +1,5 @@
 """Module for backend websocket server"""
-# pylint: disable=line-too-long,too-many-branches,unused-variable
+# pylint: disable=line-too-long,too-many-branches,unused-variable,too-many-statements
 import os
 import time
 import json
@@ -7,8 +7,14 @@ import base64
 import asyncio
 import logging
 from dotenv import load_dotenv
+from pydub import AudioSegment
 from quart import Quart, websocket
+from google.genai import types as genai_types
+
 from gemini_live_handler import GeminiClient
+from tools import schedule_meet_tool, cancel_meet_tool # pylint: disable=no-name-in-module
+
+RECORDINGS_DIR = "recordings"
 
 load_dotenv()
 
@@ -39,7 +45,7 @@ async def log_worker():
             logging.getLogger(__name__).error(f"Error in log worker: {e}", exc_info=True)
 
 class WebSocketHandler:
-    """Manages a single WebSocket connection and its interaction with Gemini."""
+    """Manages a single WebSocket connection and its interaction with Gemini Live API."""
 
     def __init__(self, ws):
         self.websocket = ws
@@ -51,6 +57,9 @@ class WebSocketHandler:
         self._gemini_client_initialized = False
         self.session_started_event = asyncio.Event()
         self._tasks = []
+        self.user_audio_chunks = []
+        self.model_audio_chunks = []
+        os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
     async def _receive_from_client(self):
         """Handles receiving messages from the client"""
@@ -76,6 +85,7 @@ class WebSocketHandler:
                     if audio_data:
                         try:
                             decoded_audio = base64.b64decode(audio_data)
+                            self.user_audio_chunks.append(decoded_audio)
                             await self.audio_queue.put(decoded_audio)
                         except Exception as e:
                             logger.error(f"[{self.connection_id}] Error processing audio: {e}")
@@ -188,13 +198,30 @@ class WebSocketHandler:
                         if server_content.model_turn:
                             for part in server_content.model_turn.parts:
                                 if part.inline_data and part.inline_data.data:
+                                    self.model_audio_chunks.append(part.inline_data.data)
                                     audio_b64 = self.gemini.convert_audio_for_client(part.inline_data.data)
                                     await self.response_queue.put({"event": "audio_chunk", "data": audio_b64})
 
                         if server_content.turn_complete or server_content.generation_complete:
                             logger.info(f"[{self.connection_id}] Model turn complete")
                             await self.response_queue.put({"event": "turn_complete", "data": "Model turn complete"})
-                    # TODO: Handle tool calls
+
+                    # TODO: Add end call tool handling. Bot can end websocket connection.
+                    if response.tool_call and response.tool_call.function_calls:
+                        function_responses = []
+                        for func_call in response.tool_call.function_calls:
+                            tool_call_name = func_call.name
+                            tool_call_args = func_call.args
+                            logger.info(f"Tool call with {tool_call_name} {tool_call_args}")
+                            await self.response_queue.put({"event": "tool_call","data": {"name": tool_call_name, "args": tool_call_args}})
+                            function_response = self.gemini.call_function(
+                                fc_id=func_call.id,
+                                fc_name=tool_call_name,
+                                fc_args=tool_call_args
+                            )
+                            # TODO: Send function response event to client
+                            function_responses.append(function_response)
+                        await self._gemini_session.send_tool_response(function_responses=function_responses)
 
         except asyncio.CancelledError:
             logger.info(f"[{self.connection_id}] Gemini processor task cancelled.")
@@ -263,7 +290,10 @@ class WebSocketHandler:
         """Manages the lifecycle of the WebSocket connection"""
         logger.info(f"[{self.connection_id}] New WebSocket connection.")
         # Initialize Gemini client class
-        self.gemini = GeminiClient(api_key=gemini_api_key)
+        self.gemini = GeminiClient(
+            api_key=gemini_api_key,
+            tools=[schedule_meet_tool, cancel_meet_tool]
+        )
         self._gemini_client_initialized = True
 
         try:
@@ -302,7 +332,69 @@ class WebSocketHandler:
             await asyncio.gather(*self._tasks, return_exceptions=True)
 
             self._clear_all_queues()
+            await self._save_recording()
             logger.info(f"[{self.connection_id}] Connection handler cleanup complete.")
+
+    # TODO: Combine the audio on both user and model streams
+    # Tried mixing them but a lot of issues came up.
+    async def _save_recording(self):
+        """Saves the user and model audio streams as two seperate MP3 file."""
+        logger.info(f"[{self.connection_id}] Preparing to save session recording.")
+        if not self.user_audio_chunks or not self.model_audio_chunks:
+            logger.info(f"[{self.connection_id}] No audio chunks for atleast user/model to save. Skipping.")
+            return
+
+        save_tasks = []
+
+        if self.user_audio_chunks:
+            try:
+                def save_user_task():
+                    logger.info(f"[{self.connection_id}] Processing user audio...")
+                    user_full_audio = b"".join(self.user_audio_chunks)
+                    user_segment = AudioSegment(
+                        data=user_full_audio,
+                        sample_width=2,      # 16-bit
+                        frame_rate=16000,    # User audio is 16kHz
+                        channels=1           # Mono
+                    )
+                    filepath = os.path.join(RECORDINGS_DIR, f"{self.connection_id}_user.mp3")
+                    user_segment.export(filepath, format="mp3", bitrate="96k")
+                    logger.info(f"[{self.connection_id}] User recording saved to {filepath}")
+
+                save_tasks.append(asyncio.to_thread(save_user_task))
+            except Exception as e:
+                logger.error(f"[{self.connection_id}] Failed to process user audio:", exc_info=True)
+
+        if self.model_audio_chunks:
+            try:
+                def save_model_task():
+                    logger.info(f"[{self.connection_id}] Processing and resampling model audio...")
+                    model_full_audio = b"".join(self.model_audio_chunks)
+
+                    # The raw audio from model is at 24kHz sample rate
+                    model_segment_raw = AudioSegment(
+                        data=model_full_audio,
+                        sample_width=2,
+                        frame_rate=24000,    # Model output audio is 24kHz
+                        channels=1
+                    )
+
+                    # Resample to 16kHz to standardize and fix the playback speed
+                    model_segment_resampled = model_segment_raw.set_frame_rate(16000)
+
+                    filepath = os.path.join(RECORDINGS_DIR, f"{self.connection_id}_model.mp3")
+                    model_segment_resampled.export(filepath, format="mp3", bitrate="96k")
+                    logger.info(f"[{self.connection_id}] Model recording saved to {filepath}")
+
+                save_tasks.append(asyncio.to_thread(save_model_task))
+            except Exception as e:
+                logger.error(f"[{self.connection_id}] Failed to process model audio:", exc_info=True)
+
+        if save_tasks:
+            await asyncio.gather(*save_tasks)
+            logger.info(f"[{self.connection_id}] All audio saving tasks complete.")
+        else:
+            logger.info(f"[{self.connection_id}] No audio chunks to save for either speaker. Skipping.")
 
 # --- Quart Routes ---
 
@@ -330,6 +422,8 @@ async def shutdown():
         pass
     except Exception as e:
         logger.error(f"Error during shutdown: {e}", exc_info=True)
+
+# TODO: Maybe add a route to fetch recording data after session ends in UI.
 
 if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
