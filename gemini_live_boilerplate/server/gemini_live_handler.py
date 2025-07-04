@@ -63,14 +63,13 @@ class GeminiClient:
 
     # TODO: Add support for async functions, identify if they are coroutines and proceed
     # NOTE: Can add support for injected tool arg like langchain, for later
-    def _call_function(self, fc_id: str, fc_name: str, fc_args=None):
+    def call_function(self, fc_id: str, fc_name: str, fc_args=None):
         """Calls the functions that were defined and returns the function response"""
         func_args = fc_args if fc_args else {}
 
         for tool in self.tools:
             if getattr(tool, "name", None) == fc_name:
                 function_result = tool(**func_args)
-                print(function_result)
                 return genai_types.FunctionResponse(
                     id=fc_id,
                     name=fc_name,
@@ -78,9 +77,8 @@ class GeminiClient:
                         "result": function_result
                     }
                 )
-            elif callable(tool) and tool.__name__ == fc_name:
+            if callable(tool) and tool.__name__ == fc_name:
                 function_result = tool(**func_args)
-                print(function_result)
                 return genai_types.FunctionResponse(
                     id=fc_id,
                     name=fc_name,

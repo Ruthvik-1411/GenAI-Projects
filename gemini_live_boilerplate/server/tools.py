@@ -2,7 +2,7 @@
 # pylint: disable=line-too-long
 from enum import Enum
 from typing import Optional, Annotated
-from utils import function_tool
+from utils import function_tool # pylint: disable=no-name-in-module
 
 class MeetingRoom(Enum):
     """Enum class for meeting room"""
@@ -43,8 +43,8 @@ def cancel_meet_tool(meet_id: Annotated[str, "The id of the meeting to cancel in
     if meet_id.startswith("a"):
         response_message = f"Successfully cancelled meeting with ID: {meet_id}"
         return response_message
-    elif meet_id.startswith("b"):
-        response_message = f"The meeting is currently in progress, unable to cancel this meeting."
+    if meet_id.startswith("b"):
+        response_message = "The meeting is currently in progress, unable to cancel this meeting."
         return response_message
 
     return "An error occurred while cancelling the meeting. Please make sure meeting ID is valid."

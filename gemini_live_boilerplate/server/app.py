@@ -12,7 +12,7 @@ from quart import Quart, websocket
 from google.genai import types as genai_types
 
 from gemini_live_handler import GeminiClient
-from tools import schedule_meet_tool, cancel_meet_tool
+from tools import schedule_meet_tool, cancel_meet_tool # pylint: disable=no-name-in-module
 
 RECORDINGS_DIR = "recordings"
 
@@ -214,7 +214,7 @@ class WebSocketHandler:
                             tool_call_args = func_call.args
                             logger.info(f"Tool call with {tool_call_name} {tool_call_args}")
                             await self.response_queue.put({"event": "tool_call","data": {"name": tool_call_name, "args": tool_call_args}})
-                            function_response = self.gemini._call_function(
+                            function_response = self.gemini.call_function(
                                 fc_id=func_call.id,
                                 fc_name=tool_call_name,
                                 fc_args=tool_call_args
