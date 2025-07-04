@@ -55,7 +55,6 @@ function updateUserMessage(chunk) {
 }
 
 function updateModelMessage(chunk) {
-    // MODIFICATION: Finalize the user's turn when the model starts speaking.
     finalizeUserTurn();
 
     if (!currentModelBubble) {
