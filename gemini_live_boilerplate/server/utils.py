@@ -4,7 +4,7 @@ from typing import get_type_hints, Optional, Union, get_args, get_origin, Annota
 
 class OpenAPITypes(Enum):
     """The basic data types defined by OpenAPI 3.0"""
-    
+
     # https://swagger.io/docs/specification/v3_0/data-models/data-types/
 
     STRING = "string"
@@ -28,7 +28,7 @@ class Schema:
     """Defines the schema for a function's parameters or return value.
     This aligns with OpenAPI schema.
     """
-    def __init__(self, type: OpenAPITypes, properties: Optional[dict] = None, 
+    def __init__(self, type: OpenAPITypes, properties: Optional[dict] = None,
                  required: Optional[list[str]] = None, description: Optional[str] = None,
                  items: Optional['Schema'] = None,
                  enum: Optional[list[str]] = None,
@@ -108,7 +108,7 @@ class FunctionSchemaBuilder:
             if args:
                 # Recurse with the actual type
                 return self._create_schema_from_type(args[0])
-        
+
         # Handle Enums
         # Use issubclass() and check that it's not the base Enum class itself
         if inspect.isclass(py_type) and issubclass(py_type, Enum):
@@ -122,7 +122,7 @@ class FunctionSchemaBuilder:
         # Handle basic types
         openapi_type = PYTHON_TO_OPENAPI_TYPE_MAP.get(py_type, OpenAPITypes.STRING)
         return Schema(type=openapi_type)
-    
+
     def _process_parameters(self):
         """Analyzes function parameters to build properties and required lists."""
         for name, param in self._signature.parameters.items():
@@ -131,7 +131,7 @@ class FunctionSchemaBuilder:
 
             py_type = self._type_hints.get(name, str) # Default to str if no hint
             description = f"Parameter '{name}'." # Default description
-            
+
             # Handle Annotated[type, "description"]
             actual_type = py_type
             if get_origin(py_type) is Annotated:
@@ -141,17 +141,17 @@ class FunctionSchemaBuilder:
 
             # Create the base schema from the actual type
             param_schema = self._create_schema_from_type(actual_type)
-            
+
             # Add the description we found
             param_schema.description = description
-            
+
             # Add default value if it exists
             if param.default is not inspect.Parameter.empty:
                 param_schema.default = param.default
             else:
                 # A parameter is required ONLY if it has no default value.
                 self.required.append(name)
-            
+
             self.properties[name] = param_schema
 
     def build(self) -> Schema:
