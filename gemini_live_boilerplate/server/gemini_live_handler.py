@@ -1,11 +1,13 @@
 """Gemini live client handler"""
-import os
 import base64
 from google import genai
 from google.genai import types as genai_types
 
 # TODO: Add more specific prompt + tool declarations
 from prompt import SYSTEM_PROMPT
+from tools import schedule_meet_tool
+
+schedule_meet_tool_declaration = schedule_meet_tool.tool_metadata()
 
 class GeminiClient:
     """Gemini client class"""
@@ -42,6 +44,7 @@ class GeminiClient:
             response_modalities=[genai_types.Modality.AUDIO],
             speech_config=self.speech_config,
             generation_config=self.generation_config,
+            tools=[genai_types.Tool(function_declarations=[schedule_meet_tool_declaration])],
             system_instruction=self.system_instruction_content,
             input_audio_transcription=genai_types.AudioTranscriptionConfig(),
             output_audio_transcription=genai_types.AudioTranscriptionConfig(),
