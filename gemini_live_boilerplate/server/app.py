@@ -7,11 +7,13 @@ import base64
 import asyncio
 import logging
 from dotenv import load_dotenv
+from pydub import AudioSegment
 from quart import Quart, websocket
 from google.genai import types as genai_types
-from gemini_live_handler import GeminiClient
 
-from pydub import AudioSegment
+from gemini_live_handler import GeminiClient
+from tools import schedule_meet_tool, cancel_meet_tool
+
 RECORDINGS_DIR = "recordings"
 
 load_dotenv()
@@ -43,7 +45,7 @@ async def log_worker():
             logging.getLogger(__name__).error(f"Error in log worker: {e}", exc_info=True)
 
 class WebSocketHandler:
-    """Manages a single WebSocket connection and its interaction with Gemini."""
+    """Manages a single WebSocket connection and its interaction with Gemini Live API."""
 
     def __init__(self, ws):
         self.websocket = ws
@@ -204,6 +206,7 @@ class WebSocketHandler:
                             logger.info(f"[{self.connection_id}] Model turn complete")
                             await self.response_queue.put({"event": "turn_complete", "data": "Model turn complete"})
 
+                    # TODO: Add end call tool handling. Bot can end websocket connection.
                     if response.tool_call and response.tool_call.function_calls:
                         function_responses = []
                         for func_call in response.tool_call.function_calls:
@@ -211,13 +214,12 @@ class WebSocketHandler:
                             tool_call_args = func_call.args
                             logger.info(f"Tool call with {tool_call_name} {tool_call_args}")
                             await self.response_queue.put({"event": "tool_call","data": {"name": tool_call_name, "args": tool_call_args}})
-                            # TODO: Execute the actual tool call and give response
-                            # use callable to execute, keep it reusable
-                            function_response = genai_types.FunctionResponse(
-                                id = func_call.id,
-                                name = tool_call_name,
-                                response={"result": "Success"}
+                            function_response = self.gemini._call_function(
+                                fc_id=func_call.id,
+                                fc_name=tool_call_name,
+                                fc_args=tool_call_args
                             )
+                            # TODO: Send function response event to client
                             function_responses.append(function_response)
                         await self._gemini_session.send_tool_response(function_responses=function_responses)
 
@@ -288,7 +290,10 @@ class WebSocketHandler:
         """Manages the lifecycle of the WebSocket connection"""
         logger.info(f"[{self.connection_id}] New WebSocket connection.")
         # Initialize Gemini client class
-        self.gemini = GeminiClient(api_key=gemini_api_key)
+        self.gemini = GeminiClient(
+            api_key=gemini_api_key,
+            tools=[schedule_meet_tool, cancel_meet_tool]
+        )
         self._gemini_client_initialized = True
 
         try:
