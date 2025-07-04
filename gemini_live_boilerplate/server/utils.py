@@ -1,7 +1,7 @@
 """common utils file"""
 # pylint: disable=too-many-positional-arguments
-from enum import Enum
 import inspect
+from enum import Enum
 from typing import get_type_hints, Optional, Union, get_args, get_origin, Annotated
 
 class OpenAPITypes(Enum):
@@ -99,7 +99,7 @@ class FunctionSchemaBuilder:
             # Get the inner type, default to 'str' if not specified (like just 'list')
             inner_type = get_args(py_type)[0] if get_args(py_type) else str
             return Schema(
-                type=OpenAPITypes.ARRAY,
+                arg_type=OpenAPITypes.ARRAY,
                 items=self._create_schema_from_type(inner_type)
             )
 
@@ -117,13 +117,13 @@ class FunctionSchemaBuilder:
             # Assuming enum values are strings, which is common.
             # NOTE: You could add logic here to check the type of enum values.
             return Schema(
-                type=OpenAPITypes.STRING,
+                arg_type=OpenAPITypes.STRING,
                 enum=[member.value for member in py_type]
             )
 
         # Handle basic types
         openapi_type = PYTHON_TO_OPENAPI_TYPE_MAP.get(py_type, OpenAPITypes.STRING)
-        return Schema(type=openapi_type)
+        return Schema(arg_type=openapi_type)
 
     def _process_parameters(self):
         """Analyzes function parameters to build properties and required lists."""
@@ -159,7 +159,7 @@ class FunctionSchemaBuilder:
     def build(self) -> Schema:
         """Returns the constructed Schema object for the function's parameters."""
         return Schema(
-            type=OpenAPITypes.OBJECT,
+            arg_type=OpenAPITypes.OBJECT,
             properties=self.properties,
             required=self.required
         )
