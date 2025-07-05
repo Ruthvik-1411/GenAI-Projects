@@ -54,10 +54,11 @@ export class ApiClient extends EventEmitter {
                 console.log(`[ApiClient] WebSocket closed. Code: ${event.code}, Reason: "${event.reason}"`);
                 const wasConnected = !!this.ws;
                 this.ws = null;
-                if (!this.explicitlyClosed && wasConnected) {
-                    this.emit('status', 'disconnected_unexpectedly', { code: event.code, reason: event.reason });
-                } else {
+                if (this.explicitlyClosed || event.code === 1000) {
                     this.emit('status', 'disconnected');
+                } else {
+                    // Any other close code (e.g., 1001, 1006) is unexpected.
+                    this.emit('status', 'disconnected_unexpectedly', { code: event.code, reason: event.reason });
                 }
                 this.emit('close', event);
             };
@@ -108,9 +109,18 @@ export class ApiClient extends EventEmitter {
 
     // --- Public Methods to Send Data ---
 
-    sendStartSession() {
+    sendStartSession(options = {}) {
         console.log('[ApiClient] Sending start session signal.');
-        this._send({ event: 'start_session' });
+        const payload = {
+            event: 'start_session'
+        }
+        if (options.sessionId){
+            payload.session_id = options.sessionId
+        }
+        if (options.customParams){
+            payload.custom_parameters = options.customParams
+        }
+        this._send(payload);
     }
 
     sendAudio(arrayBuffer) {
@@ -129,10 +139,5 @@ export class ApiClient extends EventEmitter {
         console.log('[ApiClient] Sending end session signal.');
         this._send({ event: 'end_session' });
     }
-    // For manual interruption
-    // sendInterrupt() {
-    //     console.log('[ApiClient] Sending interrupt signal.');
-    //     this._send({ event: 'interrupt' });
-    // }
-    
+
 }

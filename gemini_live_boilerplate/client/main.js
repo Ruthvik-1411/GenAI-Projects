@@ -1,4 +1,4 @@
-// main.js (Refactored with Chat UI)
+// main.js handles the actual logic to communicated with server
 
 import { ApiClient } from './api-client.js';
 import { startAudioPlayerWorklet } from './audio-player.js';
@@ -9,20 +9,19 @@ const WEBSOCKET_URL = 'ws://localhost:8081/ws';
 
 // --- DOM Elements ---
 const startSessionButton = document.getElementById('startSessionButton');
+const newSessionButton = document.getElementById('newSessionButton');
 const micButton = document.getElementById('micButton');
 const micButtonLabel = micButton.querySelector('.label');
 const logContainer = document.getElementById('log');
 const chatTranscriptContainer = document.getElementById('chatTranscript');
-// TODO: Add session resumption in backend and use this
-const pauseButton = document.getElementById('pauseButton');
 
 // --- State ---
 let isRecording = false;
 let isAudioInitialized = false;
 let isSessionActive = false;
-let isPaused = false;
 let currentUserBubble = null;
 let currentModelBubble = null;
+let currentSessionId = null;
 
 // --- Modules ---
 const client = new ApiClient(WEBSOCKET_URL);
@@ -38,19 +37,19 @@ function scrollToBottom(element) {
 }
 
 function updateUserMessage(chunk) {
-    finalizeModelTurn(); // A user message always ends the model's previous turn.
+    finalizeModelTurn();
 
     if (!currentUserBubble) {
         // This is the first chunk of a new turn, so create the bubble.
         const bubble = document.createElement('div');
         bubble.className = 'chat-bubble user';
-        const p = document.createElement('p'); // The paragraph inside the bubble
+        const p = document.createElement('p');
         bubble.appendChild(p);
         chatTranscriptContainer.appendChild(bubble);
-        currentUserBubble = p; // We'll update the text of this paragraph
+        currentUserBubble = p;
     }
 
-    currentUserBubble.textContent += chunk; // Update with the latest transcript
+    currentUserBubble.textContent += chunk;
     scrollToBottom(chatTranscriptContainer);
 }
 
@@ -61,10 +60,10 @@ function updateModelMessage(chunk) {
         // This is the first chunk of a new turn, so create the bubble.
         const bubble = document.createElement('div');
         bubble.className = 'chat-bubble model';
-        const p = document.createElement('p'); // The paragraph inside the bubble
+        const p = document.createElement('p');
         bubble.appendChild(p);
         chatTranscriptContainer.appendChild(bubble);
-        currentModelBubble = p; // We'll append text directly to the paragraph
+        currentModelBubble = p;
     }
     currentModelBubble.textContent += chunk;
     scrollToBottom(chatTranscriptContainer);
@@ -81,19 +80,36 @@ function finalizeModelTurn() {
 function logMessage(message, type = 'info') {
     const el = document.createElement('div');
     el.className = `log-message ${type}`;
-    el.textContent = message;
+    // el.textContent = message;
+    // logContainer.appendChild(el);
+    // Add timestamp
+    const now = new Date();
+    const date = [
+        now.getDate().toString().padStart(2, '0'),
+        (now.getMonth() + 1).toString().padStart(2, '0'),
+        now.getFullYear()
+    ].join('/');
+    const time = [
+        now.getHours().toString().padStart(2, '0'),
+        now.getMinutes().toString().padStart(2, '0'),
+        now.getSeconds().toString().padStart(2, '0')
+    ].join(':');
+    const timestamp = `${date} ${time}`;
+
+    // Set content with a styled span for the timestamp
+    el.innerHTML = `<span class="log-timestamp">${timestamp}</span> <br>${message}`;
     logContainer.appendChild(el);
     scrollToBottom(logContainer);
 }
 
-function displayToolCall(toolCallData) {
+function displayToolCall(toolCallData, toolEvent) {
     finalizeModelTurn();
     finalizeUserTurn();
 
     const toolCallBubble = document.createElement('div');
     toolCallBubble.className = 'chat-bubble function-call';
     toolCallBubble.innerHTML = `
-        <p class="tool-call-header"><strong>Tool Call:</strong></p>
+        <p class="tool-call-header"><strong>${toolEvent}:</strong></p>
         <p class="name">${toolCallData.name}</p>
         <div class="params">Parameters: ${JSON.stringify(toolCallData.args, null, 2)}</div>
     `;
@@ -159,6 +175,36 @@ function stopRecording() {
     logMessage('Recording stopped. Processing...', 'status');
 }
 
+function resetApplicationState() {
+    // Stop any active processes
+    if (isRecording) {
+        stopRecording();
+    }
+    if (audioPlayerNode) {
+        audioPlayerNode.port.postMessage({ command: "endOfAudio" });
+    }
+
+    // Reset state variables
+    isRecording = false;
+    isSessionActive = false;
+    currentUserBubble = null;
+    currentModelBubble = null;
+    currentSessionId = null;
+
+    // Reset UI
+    logContainer.innerHTML = '';
+    chatTranscriptContainer.innerHTML = '';
+
+    micButton.disabled = true;
+    micButton.classList.remove('recording');
+    micButtonLabel.textContent = 'Start Recording';
+
+    startSessionButton.disabled = true; // Will be enabled on 'open'
+    startSessionButton.style.display = 'block';
+
+    logMessage('Session Reset.', 'status');
+}
+
 // --- Client Event Handlers ---
 
 client.on('open', () => {
@@ -197,10 +243,18 @@ client.on('audio_chunk', (base64Data) => {
 });
 
 client.on('tool_call', (toolCallData) => {
-    displayToolCall(toolCallData);
+    displayToolCall(toolCallData, "Tool Call");
+});
+
+client.on('tool_response', (toolCallData) => {
+    displayToolCall(toolCallData, "Tool Response");
 });
 
 client.on('turn_complete', (data) => {
+    logMessage(data, 'status');
+});
+
+client.on('usage', (data) => {
     logMessage(data, 'status');
 });
 
@@ -228,7 +282,6 @@ client.on('close', () => {
     micButtonLabel.textContent = 'Start Recording';
     startSessionButton.disabled = false;
     startSessionButton.style.display = 'block';
-    // micButton.disabled = true;
     if (isRecording) {
         stopRecording();
     }
@@ -238,8 +291,21 @@ client.on('close', () => {
 
 startSessionButton.addEventListener('click', () => {
     startSessionButton.disabled = true;
-    logMessage('Starting session...', 'status');
-    client.sendStartSession();
+
+    const uuid = crypto.randomUUID();
+    currentSessionId = uuid.replaceAll('-', '');
+
+    // Optional parameters, to simulate data transfer
+    const customParameters = {
+        userId: "abcd123",
+        userRole: "executive_level2",
+        isMeetingHost: true
+    };
+
+    logMessage(`Starting session (ID:${currentSessionId.slice(0, 10)}..)...`, 'status');
+    // Can send empty session as well
+    // client.sendStartSession();
+    client.sendStartSession({sessionId: currentSessionId, customParams: customParameters});
 });
 
 micButton.addEventListener('click', () => {
@@ -250,6 +316,22 @@ micButton.addEventListener('click', () => {
     }
 });
 
+newSessionButton.addEventListener('click', () => {
+    resetApplicationState();
+    logMessage('New session requested. Reconnecting...', 'status');
+
+    // Disconnect the old client if it's connected, then reconnect.
+    if (client.isConnected()) {
+        client.disconnect();
+    }
+    
+    // The client's 'close' event will fire, but we've already reset.
+    // Now, immediately try to establish a new connection.
+    client.connect().catch(() => {
+        logMessage('Failed to connect to the server.', 'error');
+    });
+});
+
 startSessionButton.disabled = true;
 micButton.disabled = true;
 logMessage('Connecting to server...', 'status');
@@ -257,4 +339,4 @@ client.connect().catch(() => {
     logMessage('Failed to connect to the server.', 'error');
 });
 
-// TODO: Add logic for session pause, new session buttons and event handlers
+// TODO: Add logic for new session buttons and event handlers
