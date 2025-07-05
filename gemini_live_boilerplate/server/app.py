@@ -159,7 +159,6 @@ class WebSocketHandler:
             except asyncio.TimeoutError:
                 # If the timeout is reached, send an error message to client
                 logger.warning(f"[{self.connection_id}] Timed out waiting for 'start_session' event.")
-                # Send an error message to the client
                 await self.response_queue.put({
                     "event": "error",
                     "data": "Session timed out after 30 seconds. Please reconnect."
@@ -196,12 +195,10 @@ class WebSocketHandler:
                         # For input and output transcripts
                         if server_content.input_transcription and server_content.input_transcription.text:
                             text = server_content.input_transcription.text
-                            # logger.info(f"[{self.connection_id}] User transcript: '{text}'")
                             await self.response_queue.put({"event": "user_transcript", "data": text})
 
                         if server_content.output_transcription and server_content.output_transcription.text:
                             text = server_content.output_transcription.text
-                            # logger.info(f"[{self.connection_id}] Model transcript chunk: '{text}'")
                             await self.response_queue.put({"event": "model_transcript", "data": text})
 
                         # This is for audio chunks primarily
@@ -235,13 +232,11 @@ class WebSocketHandler:
                                 fc_name=tool_call_name,
                                 fc_args=tool_call_args
                             )
-                            # TODO: Send function response event to client
-                            # logger.info(f"Function response : {function_response.response}")
                             await self.response_queue.put({"event": "tool_response","data": {"name": tool_call_name, "args": function_response.response}})
                             function_responses.append(function_response)
                         await self._gemini_session.send_tool_response(function_responses=function_responses)
 
-                    # Can be used later
+                    # Tracking usage, can be used later
                     elif response.usage_metadata:
                         self.session_usage_metadata = response.usage_metadata.total_token_count
                         logger.info(f"[{self.connection_id}] Session usage: {self.session_usage_metadata} tokens.")
@@ -284,7 +279,6 @@ class WebSocketHandler:
                 if message is None: # Sentinel value to stop
                     break
 
-                # The message is already a clean dictionary, can be used directly
                 await self._send_message(message.get("event"), message.get("data"))
 
                 self.response_queue.task_done()
@@ -341,7 +335,7 @@ class WebSocketHandler:
             #     self._tasks,
             #     return_when=asyncio.FIRST_COMPLETED,
             # )
-            # Since gemini live throws an error if we wait for first complete
+            # Since google-genai library throws an error if we wait for first complete
             # we wait for all tasks to complete themselves
             await asyncio.gather(*self._tasks)
 
