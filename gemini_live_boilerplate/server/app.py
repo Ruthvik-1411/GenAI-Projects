@@ -93,7 +93,7 @@ class WebSocketHandler:
                         self.session_start_time = time.monotonic()
                     continue
 
-                elif message_event == "audio_chunk":
+                if message_event == "audio_chunk":
                     # Handle audio data from client
                     audio_data = data.get("data")
                     if audio_data:
