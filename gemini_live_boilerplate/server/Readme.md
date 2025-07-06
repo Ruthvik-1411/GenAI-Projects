@@ -17,7 +17,7 @@ The server is designed around an asynchronous, event-driven architecture to mana
 2. **Processor (_process_gemini_stream)**: Pulls audio data from the audio_queue and streams it to the Gemini Live API. It then listens for responses from Gemini (e.g., transcripts, audio chunks, tool calls) and places the processed results into a response_queue.
 3. **Sender (_send_to_client)**: Pulls messages from the response_queue and sends them back to the client over the WebSocket connection.
 
-This separation of tasks using queues ensures that the components are decoupled. The I/O-bound operations (receiving from the client, communicating with Gemini, sending to the client) do not block each other, leading to a highly responsive system.
+This **separation of concerns** using queues ensures that the components are decoupled. The I/O-bound operations (receiving from the client, communicating with Gemini, sending to the client) do not block each other, leading to a highly responsive system.
 
 [TODO: Add arch diagram]
 
@@ -50,7 +50,7 @@ This is the main entry point of the application. It uses **Quart**, an asynchron
 - **_save_recording()**: This function is called at the end of a session. It combines all the user's audio chunks into a single audio track.
     - Uses `pydub` and `ffmpeg` to overlay the audio samples at different rates and of different lengths.
     - It iterates through the model's audio events, which were timestamped during the session, and overlays them onto the user's audio track at the correct positions.
-    - Core Logic: [More detailed explanation to be added]
+    - Core Logic: More detailed explanation can be found here: **[Recording Guide](./Recording_guide.md)**
     - Audio processing with pydub is a CPU-intensive, blocking operation. To avoid freezing the entire server, it is run in a separate thread using `asyncio.to_thread`. This allows the server to remain responsive to other connections while the recording is being saved.
 
 ### Gemini Client Wrapper (gemini_live_handler.py)
@@ -80,7 +80,7 @@ These are the modules that allows tool execution and abstracts a lot of things m
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com/Ruthvik-1411/GenAI-Projects
-    cd GenAI-Projects
+    cd GenAI-Projects/gemini_live_boilerplate/server
     ```
 
 2.  **Create and activate a virtual environment:**
@@ -113,14 +113,9 @@ By default, the server will be running on `http://0.0.0.0:8081`. The WebSocket e
 
 ### Client Interaction
 
-To interact with the server, you will need a WebSocket client. You can find the client implementation code for this server [here]. The client must communicate using a JSON-based protocol with the following event structure:
+To interact with the server, you will need a WebSocket client. You can find the client implementation code for this server [here]. The client must communicate using a JSON-based protocol with the following event structure:  
 
-```json
-{
-  "event": "event_name",
-  "data": { ... }
-}
-```
+`{"event": "event_name", "data": {...}}`
 
 - **Client to Server:**
   - `{"event": "start_session", "data": {...}}`: Sent once at the beginning to initialize the Gemini stream.
@@ -132,7 +127,7 @@ To interact with the server, you will need a WebSocket client. You can find the 
   - `{"event": "user_transcript", "data": "text"}`: Real-time transcript of the user's speech.
   - `{"event": "model_transcript", "data": "text"}`: Real-time transcript of the model's speech.
   - `{"event": "audio_chunk", "data": "BASE64_ENCODED_AUDIO_STRING"}`: An audio chunk from the model.(at 24kHz)
-  - `{"event": "tool_call", "data": {"name": "...", "args": {...}}}`: Indicates the model is using a tool.
+  - `{"event": "tool_call", "data": {"name": "...", "args": {...}}}`: Indicates the model is using a tool and display's request and response parameters.
   - `{"event": "turn_complete"}`: Indicates the model has finished its turn.
 
 ## Customization
