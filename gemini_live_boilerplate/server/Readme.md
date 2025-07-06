@@ -51,7 +51,7 @@ This is the main entry point of the application. It uses **Quart**, an asynchron
 - **_save_recording()**: This function is called at the end of a session. It combines all the user's audio chunks into a single audio track.
     - Uses `pydub` and `ffmpeg` to overlay the audio samples at different rates and of different lengths.
     - It iterates through the model's audio events, which were timestamped during the session, and overlays them onto the user's audio track at the correct positions.
-    - Core Logic: More detailed explanation can be found here: **[Recording Guide](./Recording_guide.md)**
+    - **Core Logic**: More detailed explanation can be found here: **[Recording Audio Guide](./Recording_guide.md)**
     - Audio processing with pydub is a CPU-intensive, blocking operation. To avoid freezing the entire server, it is run in a separate thread using `asyncio.to_thread`. This allows the server to remain responsive to other connections while the recording is being saved.
 
 ### Gemini Client Wrapper (gemini_live_handler.py)
@@ -114,7 +114,7 @@ By default, the server will be running on `http://0.0.0.0:8081`. The WebSocket e
 
 ### Client Interaction
 
-To interact with the server, you will need a WebSocket client. You can find the client implementation code for this server code here: [Client](../client/). The client must send the data in JSON with the following event structure:  
+To interact with the server, you will need a WebSocket client. You can find the client implementation code for this server code here: [Client Source Code](../client/). The client must send the data in JSON with the following event structure:  
 
 `{"event": "event_name", "data": {...}}`
 

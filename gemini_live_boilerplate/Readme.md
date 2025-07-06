@@ -28,7 +28,7 @@ The system operates on a classic client-server model connected via WebSockets. T
 5.  All events (transcripts, tool calls, status changes) are sent as JSON messages, allowing the **Client** to update the UI dynamically.
 
 **High Level Architecture with Client and Sever Interaction**:
-<img src="../assets/gemini_live_overall.png">
+<img src="./assets/gemini_live_overall.png">
 
 ## Technology Stack
 
