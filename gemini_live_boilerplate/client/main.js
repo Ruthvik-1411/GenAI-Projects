@@ -338,5 +338,3 @@ logMessage('Connecting to server...', 'status');
 client.connect().catch(() => {
     logMessage('Failed to connect to the server.', 'error');
 });
-
-// TODO: Add logic for new session buttons and event handlers
