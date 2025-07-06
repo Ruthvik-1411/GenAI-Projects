@@ -103,7 +103,7 @@ This is a static web application. It does not require a build step, but it must 
 
 ### Configuration
 
-If your backend server is running on a different address or port, you will need to update the WebSocket URL. You can start a backend server that comes with this client, the steps to start the server can be found here: [add link here].
+If your backend server is running on a different address or port, you will need to update the WebSocket URL. You can start a backend server that comes with this client, the steps to start the server can be found here: [Running the server](../server#development-guide).
 
 1.  Open `main.js`.
 2.  Find the following line at the top of the file:

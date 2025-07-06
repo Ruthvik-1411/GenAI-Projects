@@ -27,7 +27,8 @@ The system operates on a classic client-server model connected via WebSockets. T
 4.  The **Server** streams the AI's audio response back to the **Client**, which plays it instantly. It also handles tool calls by executing local Python functions and sending the results back to Gemini.
 5.  All events (transcripts, tool calls, status changes) are sent as JSON messages, allowing the **Client** to update the UI dynamically.
 
-[TODO: Add arch diagram for client and server]
+**High Level Architecture with Client and Sever Interaction**:
+<img src="../assets/gemini_live_overall.png">
 
 ## Technology Stack
 
@@ -38,7 +39,7 @@ The system operates on a classic client-server model connected via WebSockets. T
 | **Core API**            | Google Gemini Live API  (`gemini-2.0-flash-live`)                                |
 
 **UI Samples**:<br>
-<img src="https://github.com/Ruthvik-1411/GenAI-Projects/blob/main/gemini_live_boilerplate/assets/sample_ui.png">
+<img src="./assets/gemini_live_ui.png">
 
 ## Getting Started
 

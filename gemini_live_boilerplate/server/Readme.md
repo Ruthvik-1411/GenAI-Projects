@@ -19,7 +19,8 @@ The server is designed around an asynchronous, event-driven architecture to mana
 
 This **separation of concerns** using queues ensures that the components are decoupled. The I/O-bound operations (receiving from the client, communicating with Gemini, sending to the client) do not block each other, leading to a highly responsive system.
 
-[TODO: Add arch diagram]
+**High Level Architecture and Data Flow**:
+<img src="../assets/gemini_live_server.png">
 
 ## Core Components
 
@@ -113,7 +114,7 @@ By default, the server will be running on `http://0.0.0.0:8081`. The WebSocket e
 
 ### Client Interaction
 
-To interact with the server, you will need a WebSocket client. You can find the client implementation code for this server [here]. The client must communicate using a JSON-based protocol with the following event structure:  
+To interact with the server, you will need a WebSocket client. You can find the client implementation code for this server code here: [Client](../client/). The client must send the data in JSON with the following event structure:  
 
 `{"event": "event_name", "data": {...}}`
 
