@@ -23,6 +23,7 @@ class GeminiClient:
                  model_key: str="gemini-2.0-flash-exp",
                  tools: List[Callable[..., object]] = None):
         # Initialize gemini client
+        # NOTE: Vertex AI project id can also be used here with minimal changes
         self.client = genai.Client(
             api_key=api_key
         )
@@ -54,7 +55,6 @@ class GeminiClient:
             response_modalities=[genai_types.Modality.AUDIO],
             speech_config=self.speech_config,
             temperature=0.7,
-            # tools=[genai_types.Tool(function_declarations=[schedule_meet_tool_declaration])],
             tools=[genai_types.Tool(function_declarations=self.tool_definitions)],
             system_instruction=self.system_instruction_content,
             input_audio_transcription=genai_types.AudioTranscriptionConfig(),
