@@ -77,7 +77,7 @@ python app.py
 
 The server should now be running, typically on port `8081`.
 
-> For detailed instructions on server configuration, API, and architecture, see the **[Server README](./server/README.md)**.
+> For detailed instructions on server configuration, API, and architecture, see the **[Server README](./server/Readme.md)**.
 
 ### 3. Set Up and Run the Frontend Client
 
@@ -99,7 +99,7 @@ Open your web browser and navigate to:
 
 You should see the user interface. You can now start a session and begin conversing with the AI.
 
-> For a breakdown of the client's components, UI logic, and data flow, see the **[Client README](./client/README.md)**.
+> For a breakdown of the client's components, UI logic, and data flow, see the **[Client README](./client/Readme.md)**.
 
 ## Project Structure
 
