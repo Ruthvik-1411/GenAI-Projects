@@ -7,7 +7,7 @@ class PCMPlayerProcessor extends AudioWorkletProcessor {
     super();
 
     // Init buffer
-    this.bufferSize = 24000 * 180;  // 24kHz x 180 seconds
+    this.bufferSize = 24000 * 1;  // 24kHz x 1 seconds(reduced from 180s, to not buffer on client side, client should playback what's coming)
     this.buffer = new Float32Array(this.bufferSize);
     this.writeIndex = 0;
     this.readIndex = 0;

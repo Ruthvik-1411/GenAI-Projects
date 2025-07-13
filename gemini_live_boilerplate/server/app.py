@@ -190,6 +190,9 @@ class WebSocketHandler:
                         server_content = response.server_content
                         if server_content.interrupted is not None:
                             logger.warning(f"[{self.connection_id}] User interruption detected!")
+                            # If interrupted, response queue must be cleared as well and model turn finalized
+                            self._finalize_and_store_model_utterance()
+                            self._clear_response_queue()
                             await self.response_queue.put({"event": "interrupt", "data": {"reason": "User Barge-in detected"}})
 
                         # For input and output transcripts
