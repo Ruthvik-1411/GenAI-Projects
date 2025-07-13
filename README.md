@@ -24,6 +24,7 @@ List of projects/ideas I plan to implement:
       * Generates image slides to depict a story. Ensure character consistency.
   - [ ] Short Video generator (max 30s). (Costly with veo, but good exploration)
 - **Live Application** (Multimodal Live)
+  - [x] Boilerplate code for multimodal applications for prototyping. -> [Gemini Live BoilerPlate](https://github.com/Ruthvik-1411/GenAI-Projects/tree/main/gemini_live_boilerplate)
   - [ ] A simple bank teller agent that helps gather some information about a/c balance, payments made etc (access to tools)
   - [ ] Live gent with access to some data and bunch of tools.(complex)
 - **Agentic Applications** (explore MCP along the way)
