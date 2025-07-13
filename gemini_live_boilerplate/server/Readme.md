@@ -95,7 +95,7 @@ These are the modules that allows tool execution and abstracts a lot of things m
     ```bash
     pip install -r requirements.txt
     ```
-
+> Additional Installations: ffmpeg https://www.ffmpeg.org/download.html https://www.gyan.dev/ffmpeg/builds/
 4.  **Set up environment variables:**
     Create a file named `.env` in the root of the project directory and add your API key:
     ```.env

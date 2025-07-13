@@ -75,8 +75,9 @@ echo "AISTUDIO_API_KEY='YOUR_GOOGLE_AISTUDIO_API_KEY'" > .env
 # Run the server
 python app.py
 ```
+> Additional Installations: ffmpeg https://www.ffmpeg.org/download.html https://www.gyan.dev/ffmpeg/builds/
 
-The server should now be running, typically on port `8081`.
+The server should now be running on port `8081`.
 
 > For detailed instructions on server configuration, API, and architecture, see the **[Server README](./server/Readme.md)**.
 
