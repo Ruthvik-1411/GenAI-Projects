@@ -32,42 +32,64 @@ class ResponseManager:
 
     async def invoke_agent(self, session_id: str, query: str) -> str:
 
-        logger.info(f"Fetching session data with id: {session_id}")
-        session = await self.runner.session_service.get_session(
-            app_name=self.agent.name,
-            user_id=self.user_id,
-            session_id=session_id
-        )
-
-        if session is None:
-            logger.info(f"Session doesn't exist, creating new session with id: {session_id}")
-            session = await self.runner.session_service.create_session(
+        try:
+            logger.info(f"Fetching session data with id: {session_id}")
+            session = await self.runner.session_service.get_session(
                 app_name=self.agent.name,
                 user_id=self.user_id,
-                session_id=session_id,
-                state={}
+                session_id=session_id
             )
 
-        logger.info(f"{session.id} Running query: {query}")
+            if session is None:
+                logger.info(f"Session doesn't exist, creating new session with id: {session_id}")
+                session = await self.runner.session_service.create_session(
+                    app_name=self.agent.name,
+                    user_id=self.user_id,
+                    session_id=session_id,
+                    state={}
+                )
 
-        content = types.Content(role="user",parts=[types.Part.from_text(text=query)])
+            logger.info(f"{session.id} Running query: {query}")
 
-        final_response_text = ""
-        async for event in self.runner.run_async(
-            user_id=self.user_id,
-            session_id=session.id,
-            new_message=content
-        ):
-            if event.is_final_response():
+            content = types.Content(role="user",parts=[types.Part.from_text(text=query)])
+
+            final_response_text = ""
+            async for event in self.runner.run_async(
+                user_id=self.user_id,
+                session_id=session.id,
+                new_message=content
+            ):
+                if event.get_function_calls():
+                    yield {
+                        "is_final_response": False,
+                        "status": "tool_call",
+                        "event": event.model_dump(mode='json', exclude_none=True)
+                    }
+                if event.get_function_responses():
+                    yield {
+                        "is_final_response": False,
+                        "status": "tool_response",
+                        "event": event.model_dump(mode='json', exclude_none=True)
+                    }
+                if event.is_final_response():
                     if event.content and event.content.parts and event.content.parts[-1].text:
                         final_response_text = event.content.parts[-1].text
 
-        logger.info(f"[{session_id}] Final text: {final_response_text}]")
-        if final_response_text:
-            return final_response_text
-        else:
-            logger.info(f"No final response received.")
-            return None
+                    logger.info(f"[{session_id}] Final text: {final_response_text}]")
+                    yield {
+                        "is_final_response": True,
+                        "status": "finished",
+                        "result": final_response_text,
+                        "event": event.model_dump(mode='json', exclude_none=True)
+                    }
+        except Exception as e:
+            logger.info(f"Error generating response.")
+            yield {
+                "is_final_response": True,
+                "status": "fail",
+                "result": "No final response received",
+                "error_message": str(e)
+            }
 
 async def test_agent(): 
 
@@ -76,11 +98,14 @@ async def test_agent():
     session_id = str(uuid.uuid4())
 
     first_query = "What are some trending topics in AI?"
-    first_response = await response_manager.invoke_agent(session_id=session_id, query=first_query)
-    logger.info(f"First response: {first_response}")
+    # first_response = await response_manager.invoke_agent(session_id=session_id, query=first_query)
+    first_response = response_manager.invoke_agent(session_id=session_id, query=first_query)
+    async for response in first_response:
+        logger.info(f"Events: {response}")
+    # logger.info(f"First response: {first_response}")
 
-    second_query = "What question did I ask you?"
-    second_response = await response_manager.invoke_agent(session_id=session_id, query=second_query)
-    logger.info(f"Second response: {second_response}")
+    # second_query = "What question did I ask you?"
+    # second_response = await response_manager.invoke_agent(session_id=session_id, query=second_query)
+    # logger.info(f"Second response: {second_response}")
 
-asyncio.run(test_agent())
+# asyncio.run(test_agent())
