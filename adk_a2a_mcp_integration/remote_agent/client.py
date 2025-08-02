@@ -2,8 +2,8 @@
 import asyncio
 import logging
 from typing import Any
-import httpx
 from uuid import uuid4
+import httpx
 from a2a.client import A2ACardResolver, A2AClient
 from a2a.types import MessageSendParams, SendMessageRequest
 

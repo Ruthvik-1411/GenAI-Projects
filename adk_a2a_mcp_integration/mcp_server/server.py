@@ -155,4 +155,4 @@ def get_paper_md(paper_id: str) -> dict:
 #         return {"status": "error", "error_message": f"Error: {e}"}
 
 if __name__ == "__main__":
-   mcp.run(transport="http", host="127.0.0.1", port=8000, path="/mcp")
+    mcp.run(transport="http", host="127.0.0.1", port=8000, path="/mcp")

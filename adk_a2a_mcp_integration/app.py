@@ -44,7 +44,7 @@ for message in st.session_state.messages:
 
 # --- Coroutine to handle agent invocation and UI updates ---
 async def run_agent_and_display(prompt: str):
-    # Add user message to session state and display it
+    """Add user message to session state and display it"""
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
