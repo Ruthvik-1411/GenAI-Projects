@@ -1,0 +1,19 @@
+# mcp server requirements
+fastmcp==2.10.6
+arxiv==2.2.0
+pymupdf4llm==0.0.27
+
+# general a2a requirements
+a2a-sdk==0.2.16
+
+# adk requirements
+google-adk==1.8.0
+google-genai==1.27.0
+fastapi==0.116.1
+
+python-dotenv==1.1.1
+requests==2.32.4
+
+uvicorn==0.35.0
+
+streamlit==1.47.1
