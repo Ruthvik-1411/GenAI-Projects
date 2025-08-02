@@ -1,3 +1,4 @@
+"""Core module for agent orchestration"""
 from google.adk.agents import Agent
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConnectionParams
 
@@ -19,7 +20,7 @@ simple_mcp_tool = MCPToolset(
 )
 
 root_agent = Agent(
-   name="orchestrator_agent",
+   name="root_agent",
    model="gemini-2.0-flash",
    description="Agent to answer questions using tools provided.",
    instruction="""You are a helpful agent who can answer user questions about current time and can do calculations.

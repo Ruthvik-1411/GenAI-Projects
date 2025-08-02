@@ -1,4 +1,5 @@
-import os
+"""Module that implements the core logic for the search agent"""
+import logging
 
 from google.adk import Runner
 from google.adk.agents import Agent
@@ -12,6 +13,8 @@ from dotenv import load_dotenv
 # To load the google api keys
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 root_agent = Agent(
     name="search_agent",
     model="gemini-2.0-flash",
@@ -22,7 +25,7 @@ root_agent = Agent(
 )
 
 class BasicSearchAgent:
-    
+    """Class that exposes the basic search agent"""
     def __init__(self):
         self.agent = root_agent
         self.runner =  Runner(
@@ -33,7 +36,7 @@ class BasicSearchAgent:
             session_service=InMemorySessionService(),
         )
 
-    async def invoke(self, session_id: str, query: str, user_id: str = None) -> dict:
+    async def invoke(self, session_id: str, query: str, user_id: str = None):
         """Invoke the agent"""
         try:
             if not user_id:
@@ -45,7 +48,7 @@ class BasicSearchAgent:
                 )
 
             if not session_instance:
-                print(f"Creating new session with id: {session_id}")
+                logger.info(f"Creating new session with id: {session_id}")
                 session_instance = await self.runner.session_service.create_session(
                     session_id=session_id,
                     user_id=user_id,
@@ -64,17 +67,17 @@ class BasicSearchAgent:
             ):
                 # We can break when there's final response,
                 # but for telemetry usage, the loop must complete 
-                # print(f"Event: {event}")
+                # logger.debug(f"Event: {event}")
                 if event.is_final_response():
                     if event.content and event.content.parts and event.content.parts[-1].text:
                         final_response_text = event.content.parts[-1].text
-            print("Loop finished, yielding final response.")
+            logger.info("Loop finished, yielding final response.")
             yield {
                 "status": "success",
                 "result": final_response_text
             }
         except Exception as e:
-            print(f"Error: {e}")
+            logger.info(f"Error: {e}")
             yield {
                 "status": "error",
                 "error_message": str(e)

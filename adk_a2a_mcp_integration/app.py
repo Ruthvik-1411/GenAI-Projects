@@ -1,5 +1,4 @@
-# app.py
-
+"""Module that interacts with backend agent using streamlit"""
 import streamlit as st
 import uuid
 import asyncio
@@ -80,9 +79,9 @@ async def run_agent_and_display(prompt: str):
         status_placeholder.empty()
         st.markdown(final_response_text)
         
-        if diagnostics_enabled and diagnostic_events:
-            with st.expander("View Diagnostics for this response."):
-                st.json(diagnostic_events)
+    if diagnostics_enabled and diagnostic_events:
+        with st.expander("View Diagnostics for this response."):
+            st.json(diagnostic_events)
 
     st.session_state.messages.append({
         "role": "assistant",

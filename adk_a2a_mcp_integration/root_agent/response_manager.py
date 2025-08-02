@@ -1,3 +1,4 @@
+"""Module that handles interaction with the agent, maintains session and query passing."""
 import asyncio
 import uuid
 import logging
@@ -18,7 +19,7 @@ logging.basicConfig(
 )
 
 class ResponseManager:
-
+    """Class that handles the respone management with root agent"""
     def __init__(self):
         self.agent = root_agent
         self.user_id = "u_123"
@@ -30,8 +31,9 @@ class ResponseManager:
             memory_service=InMemoryMemoryService(),
         )
 
-    async def invoke_agent(self, session_id: str, query: str) -> str:
-
+    async def invoke_agent(self, session_id: str, query: str):
+        """Invokes the root agent while maintaining sessionid
+        for continuance"""
         try:
             logger.info(f"Fetching session data with id: {session_id}")
             session = await self.runner.session_service.get_session(
@@ -92,7 +94,7 @@ class ResponseManager:
             }
 
 async def test_agent(): 
-
+    """Utils function to test the agent using response manager"""
     response_manager = ResponseManager()
 
     session_id = str(uuid.uuid4())

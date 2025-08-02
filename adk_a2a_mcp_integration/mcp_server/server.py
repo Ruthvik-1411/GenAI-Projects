@@ -1,9 +1,12 @@
 import os
+import logging
 import tempfile
 import requests
 import arxiv
 import pymupdf4llm
 from fastmcp import FastMCP
+
+logger = logging.getLogger(__name__)
 
 mcp = FastMCP("ArxivExplorer")
 
@@ -27,7 +30,7 @@ def search_arxiv(query: str, max_results: int = 5) -> dict:
 
        papers = []
        for result in search.results():
-           print(f"{result.title}")
+           logger.info(f"{result.title}")
            paper_info = {
                'id': result.get_short_id(),
                'title': result.title,
@@ -61,8 +64,8 @@ def get_paper_md(paper_id: str) -> dict:
        search = arxiv.Search(id_list=[paper_id])
        paper = next(search.results())
        pdf_url = paper.pdf_url
-       print(f"Found paper: '{paper.title}'")
-       print(f"Downloading from: {pdf_url}")
+       logger.info(f"Found paper: '{paper.title}'")
+       logger.info(f"Downloading from: {pdf_url}")
 
    except StopIteration:
        return {"status": "error", "error_message": f"Paper with ID '{paper_id}' not found on arXiv."}
@@ -74,7 +77,7 @@ def get_paper_md(paper_id: str) -> dict:
        response = requests.get(pdf_url)
        response.raise_for_status()
        pdf_bytes = response.content
-       print("PDF downloaded successfully.")
+       logger.info("PDF downloaded successfully.")
 
    except requests.exceptions.RequestException as e:
        return {"status": "error", "error_message": f"Error downloading the PDF file, request failure: {e}"}
@@ -87,21 +90,21 @@ def get_paper_md(paper_id: str) -> dict:
            temp_file.write(pdf_bytes)
            temp_pdf_path = temp_file.name # Get the path of the temporary file
       
-       print(f"PDF content written to temporary file: {temp_pdf_path}")
-       print("Converting PDF to Markdown...")
+       logger.info(f"PDF content written to temporary file: {temp_pdf_path}")
+       logger.info("Converting PDF to Markdown...")
        # Pass the file path to the conversion function
        md_text = pymupdf4llm.to_markdown(temp_pdf_path)
       
-       print("Conversion complete.")
+       logger.info("Conversion complete.")
        if temp_pdf_path and os.path.exists(temp_pdf_path):
            os.remove(temp_pdf_path)
-           print(f"Temporary file {temp_pdf_path} deleted.")
+           logger.info(f"Temporary file {temp_pdf_path} deleted.")
        return {"status": "success", "result": md_text}
 
    except Exception as e:
        return {"status": "error", "error_message": f"Error converting PDF to Markdown: {e}"}
 
-# To pass the paper directly as media to llm
+# To pass the paper directly as media to llm, to be used later
 # @mcp.tool()
 # def get_paper_raw(paper_id: str) -> dict:
 #    """
@@ -126,10 +129,10 @@ def get_paper_md(paper_id: str) -> dict:
 #    except StopIteration:
 #        return {"status": "error", "error_message": f"Paper with ID {paper_id} not found on arXiv."}
 #    except requests.exceptions.RequestException as e:
-#        print(f"Error downloading PDF: {e}")
+#        logger.info(f"Error downloading PDF: {e}")
 #        return {"status": "error", "error_message": f"Error downloading PDF: {e}"}
 #    except Exception as e:
-#        print(f"Error: {e}")
+#        logger.info(f"Error: {e}")
 #        return {"status": "error", "error_message": f"Error: {e}"}
 
 if __name__ == "__main__":
