@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class BasicSearchAgentExecutor(AgentExecutor):
     """Agent executor that invokes the agent"""
-    
+
     def __init__(self):
         super().__init__()
         self._agent = BasicSearchAgent()
@@ -46,4 +46,4 @@ class BasicSearchAgentExecutor(AgentExecutor):
 
     async def cancel(self, request_context: RequestContext, event_queue: EventQueue) -> None:
         """To cancel an ongoing agent execution"""
-        raise Exception('cancel not supported at this moment!')
+        raise ValueError('cancel not supported at this moment!')

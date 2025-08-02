@@ -85,7 +85,7 @@ class ResponseManager:
                         "event": event.model_dump(mode='json', exclude_none=True)
                     }
         except Exception as e:
-            logger.info(f"Error generating response.")
+            logger.error(f"Error generating response. {str(e)}")
             yield {
                 "is_final_response": True,
                 "status": "fail",
@@ -93,21 +93,23 @@ class ResponseManager:
                 "error_message": str(e)
             }
 
-async def test_agent(): 
+async def test_agent():
     """Utils function to test the agent using response manager"""
     response_manager = ResponseManager()
 
     session_id = str(uuid.uuid4())
 
     first_query = "What are some trending topics in AI?"
-    # first_response = await response_manager.invoke_agent(session_id=session_id, query=first_query)
+    # first_response = await response_manager.invoke_agent(session_id=session_id,
+    #                                                      query=first_query)
     first_response = response_manager.invoke_agent(session_id=session_id, query=first_query)
     async for response in first_response:
         logger.info(f"Events: {response}")
     # logger.info(f"First response: {first_response}")
 
     # second_query = "What question did I ask you?"
-    # second_response = await response_manager.invoke_agent(session_id=session_id, query=second_query)
+    # second_response = await response_manager.invoke_agent(session_id=session_id,
+    #                                                       query=second_query)
     # logger.info(f"Second response: {second_response}")
 
 # asyncio.run(test_agent())

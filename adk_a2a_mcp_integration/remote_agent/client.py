@@ -1,8 +1,8 @@
 """Module to test the remote agent exposed via A2A. Mimic's client side implementation"""
-import httpx
 import asyncio
 import logging
 from typing import Any
+import httpx
 from uuid import uuid4
 from a2a.client import A2ACardResolver, A2AClient
 from a2a.types import MessageSendParams, SendMessageRequest
@@ -22,7 +22,7 @@ async def client():
         logger.info(agent_card.model_dump_json(indent=2, exclude_none=True))
 
         logger.info("Initializing A2A Client")
-        client = A2AClient(
+        client_instance = A2AClient(
             httpx_client=httpx_client, agent_card=agent_card
         )
         logger.info('A2A Client initialized.')
@@ -31,7 +31,10 @@ async def client():
             'message': {
                 'role': 'user',
                 'parts': [
-                    {'kind': 'text', 'text': 'What is model context protocol? Give a brief description.'}
+                    {
+                        'kind': 'text',
+                        'text': 'What is model context protocol? Give a brief description.'
+                    }
                 ],
                 'messageId': uuid4().hex,
             },
@@ -41,7 +44,7 @@ async def client():
             id=str(uuid4()), params=MessageSendParams(**send_message_payload)
         )
 
-        response = await client.send_message(request)
+        response = await client_instance.send_message(request)
         logger.info(response.model_dump(mode='json', exclude_none=True))
         response_dict = response.model_dump(mode='json', exclude_none=True)
         agent_response_text = "No text content found in response or an error occurred."

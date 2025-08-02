@@ -19,8 +19,8 @@ root_agent = Agent(
     name="search_agent",
     model="gemini-2.0-flash",
     description="Agent capable of searching internet to find relevant answers to user questions.",
-    instruction="""You are an friendly and supportive agent. Your job is to try to answer the user question using the search tool.
-    Always provide accurate and relevant information.""",
+    instruction="""You are an friendly and supportive agent. Your job is to try to answer
+    the user question using the search tool. Always provide accurate and relevant information.""",
     tools=[google_search],
 )
 
@@ -40,12 +40,12 @@ class BasicSearchAgent:
         """Invoke the agent"""
         try:
             if not user_id:
-               user_id = "Default User"
-               session_instance = await self.runner.session_service.get_session(
-                   session_id=session_id,
-                   user_id=user_id,
-                   app_name=self.agent.name
-                )
+                user_id = "Default User"
+                session_instance = await self.runner.session_service.get_session(
+                    session_id=session_id,
+                    user_id=user_id,
+                    app_name=self.agent.name
+                    )
 
             if not session_instance:
                 logger.info(f"Creating new session with id: {session_id}")
@@ -54,7 +54,7 @@ class BasicSearchAgent:
                     user_id=user_id,
                     app_name=self.agent.name
                 )
-            
+
             user_content = types.Content(
                 role="user", parts=[types.Part.from_text(text=query)]
             )
@@ -66,7 +66,7 @@ class BasicSearchAgent:
                 new_message=user_content
             ):
                 # We can break when there's final response,
-                # but for telemetry usage, the loop must complete 
+                # but for telemetry usage, the loop must complete
                 # logger.debug(f"Event: {event}")
                 if event.is_final_response():
                     if event.content and event.content.parts and event.content.parts[-1].text:

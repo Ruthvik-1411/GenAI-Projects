@@ -1,7 +1,8 @@
 """Module that interacts with backend agent using streamlit"""
-import streamlit as st
+# pylint: disable=line-too-long,invalid-name
 import uuid
 import asyncio
+import streamlit as st
 from root_agent.response_manager import ResponseManager
 
 # --- Page Configuration ---
@@ -67,7 +68,7 @@ async def run_agent_and_display(prompt: str):
             ):
                 status_text = status_messages.get(event.get("status"), f"Processing: {event.get('status')}")
                 status_placeholder.text(status_text)
-                
+
                 diagnostic_events.append(event.get("event"))
                 if event.get("is_final_response"):
                     final_response_text = event.get("result", "Sorry, I couldn't generate a response.")
@@ -78,7 +79,7 @@ async def run_agent_and_display(prompt: str):
 
         status_placeholder.empty()
         st.markdown(final_response_text)
-        
+
     if diagnostics_enabled and diagnostic_events:
         with st.expander("View Diagnostics for this response."):
             st.json(diagnostic_events)
@@ -90,5 +91,5 @@ async def run_agent_and_display(prompt: str):
     })
 
 # --- Handle User Input ---
-if prompt := st.chat_input("What are some trending topics in AI?"):
-    asyncio.run(run_agent_and_display(prompt))
+if user_input := st.chat_input("What are some trending topics in AI?"):
+    asyncio.run(run_agent_and_display(user_input))

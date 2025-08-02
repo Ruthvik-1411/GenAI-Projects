@@ -1,8 +1,8 @@
 """Helper functions to interact with other agents exposed via A2A"""
-import httpx
 import logging
 from typing import Any
 from uuid import uuid4
+import httpx
 from a2a.client import A2ACardResolver, A2AClient
 from a2a.types import MessageSendParams, SendMessageRequest
 
@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 
 remote_agent_cards_cache = []
 
-remote_agent_url = "http://localhost:8090/"
+REMOTE_AGENT_URL = "http://localhost:8090/"
 
 async def list_remote_agents() -> list[dict]:
     """Fetches the capabilities of all available remote agents"""
-    
+
     if remote_agent_cards_cache:
         logger.info("Remote agents card cache exists, using cache")
         return remote_agent_cards_cache
@@ -24,13 +24,13 @@ async def list_remote_agents() -> list[dict]:
             # get only one agent url for now
             resolver = A2ACardResolver(
                 httpx_client=httpx_client,
-                base_url=remote_agent_url,
+                base_url=REMOTE_AGENT_URL,
             )
             logger.info("Attempting to fetch agent card...")
             agent_card = await resolver.get_agent_card()
             logger.info('Agent card fetched. Agent card:')
             logger.info(agent_card.model_dump_json(indent=2, exclude_none=True))
-        
+
         remote_agent_cards_cache.append({
             "agent_name": agent_card.name,
             "agent_card": agent_card
@@ -43,11 +43,11 @@ async def list_remote_agents() -> list[dict]:
 
 async def call_remote_agent(query: str, agent_name: str) -> str:
     """Call the remote agent with appropriate query"""
-    
+
     agent_cards = await list_remote_agents()
-    
+
     agent_card_to_use = None
-    
+
     for card in agent_cards:
         if card.get("agent_name") == agent_name:
             agent_card_to_use = card.get("agent_card")
@@ -83,7 +83,7 @@ async def call_remote_agent(query: str, agent_name: str) -> str:
         except Exception as e:
             logger.error("Failed to send message to remote agent.")
             raise RuntimeError("Remote agent call failed.") from e
-    
+
     agent_response_text = "No text content found in response or an error occurred."
     try:
         agent_response_text = response_dict['result']['parts'][0]['text']

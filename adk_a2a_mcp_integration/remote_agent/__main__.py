@@ -1,7 +1,7 @@
 """Module that exposes the remote agent as a server, sharing it's capabilities
 and methods to invoke it"""
-import uvicorn
 import logging
+import uvicorn
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
@@ -10,7 +10,7 @@ from remote_agent.task_manager import BasicSearchAgentExecutor
 
 logger = logging.getLogger(__name__)
 
-agent_url = "http://localhost:8090/"
+AGENT_URL = "http://localhost:8090/"
 
 def start_remote_agent():
     """Start the remote agent and expose it's capabilities"""
@@ -31,7 +31,7 @@ def start_remote_agent():
     public_agent_card = AgentCard(
         name="Search agent",
         description="Agent that can search the internet to answer queries.",
-        url=agent_url,
+        url=AGENT_URL,
         version="0.0.1",
         skills=[agent_skill],
         defaultInputModes=['text'],
