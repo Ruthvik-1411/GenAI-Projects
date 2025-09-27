@@ -93,7 +93,7 @@ class GeminiClient:
                             "result": function_result
                         }
                     )
-            logger.error(f"Function with name '{fc_name}' is not defined. Error: {str(e)}.")
+            logger.error(f"Function with name '{fc_name}' is not defined.")
             return genai_types.FunctionResponse(
                 id=fc_id,
                 name=fc_name,
@@ -107,7 +107,7 @@ class GeminiClient:
                 id=fc_id,
                 name=fc_name,
                 response={
-                    "result": f"Error occured invoking function. Unable to execute the function"
+                    "result": "Error occured invoking function. Unable to execute the function"
                 }
             )
 
