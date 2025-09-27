@@ -12,7 +12,8 @@ from pydub import AudioSegment
 from quart import Quart, websocket
 
 from gemini_live_handler import GeminiClient
-from tools import schedule_meet_tool, cancel_meet_tool # pylint: disable=no-name-in-module
+from utils import function_tool
+from tools import schedule_meet_tool, cancel_meet_tool, get_current_time # pylint: disable=no-name-in-module
 
 RECORDINGS_DIR = "recordings"
 
@@ -43,6 +44,7 @@ class WebSocketHandler:
         self._gemini_client_initialized = False
         self.session_usage_metadata = None
         self.session_started_event = asyncio.Event()
+        self._end_session_event = asyncio.Event()
         self._tasks = []
 
         self.session_start_time = None
@@ -70,6 +72,22 @@ class WebSocketHandler:
         # Reset the state
         self.current_model_utterance_chunks = []
         self.current_model_utterance_start_ms = None
+
+    # NOTE: Change the name as needed and add extra functions
+    # such as static goodbye read out if needed.
+    @function_tool
+    async def end_call(self):
+        """Handles ending the session by the bot"""
+        logger.info(f"[{self.connection_id}] end_call tool invoked by LLM.")
+
+        await self.response_queue.put({
+            "event": "end_session",
+            "data": {"reason": "Bot ended the call"}
+        })
+
+        self._end_session_event.set()
+
+        return {"status": "ok", "message": "Session will end now."}
 
     async def _receive_from_client(self):
         """Handles receiving messages from the client"""
@@ -107,6 +125,7 @@ class WebSocketHandler:
                 elif message_event == "end_session":
                     # Client wants to end the session
                     logger.info(f"[{self.connection_id}] End session event received.")
+                    self._end_session_event.set()
                     # Exit this task gracefully. The main handler will clean up.
                     return
                 else:
@@ -230,7 +249,7 @@ class WebSocketHandler:
                             tool_call_args = func_call.args
                             logger.info(f"Tool call with {tool_call_name} {tool_call_args}")
                             await self.response_queue.put({"event": "tool_call","data": {"name": tool_call_name, "args": tool_call_args}})
-                            function_response = self.gemini.call_function(
+                            function_response = await self.gemini.call_function(
                                 fc_id=func_call.id,
                                 fc_name=tool_call_name,
                                 fc_args=tool_call_args
@@ -319,7 +338,7 @@ class WebSocketHandler:
         # Initialize Gemini client class
         self.gemini = GeminiClient(
             api_key=gemini_api_key,
-            tools=[schedule_meet_tool, cancel_meet_tool]
+            tools=[schedule_meet_tool, cancel_meet_tool, get_current_time, self.end_call]
         )
         self._gemini_client_initialized = True
 
@@ -332,15 +351,16 @@ class WebSocketHandler:
             sender = asyncio.create_task(self._send_to_client(), name=f"sender[{self.connection_id}]")
 
             self._tasks = [receiver, processor, sender]
+            end_event_task = asyncio.create_task(self._end_session_event.wait())
 
-            # Wait for any one of the task to complete
-            # done, pending = await asyncio.wait(
-            #     self._tasks,
-            #     return_when=asyncio.FIRST_COMPLETED,
-            # )
             # Since google-genai library throws an error if we wait for first complete
             # we wait for all tasks to complete themselves
-            await asyncio.gather(*self._tasks)
+            # await asyncio.gather(*self._tasks)
+            # Since we are using wait, if end event happens, we will see a harmless warning
+            await asyncio.wait(
+                [*self._tasks, end_event_task],
+                return_when=asyncio.FIRST_COMPLETED
+            )
 
         except ConnectionClosedOK:
             # Clean shutdown. Gemini library throws this exception
