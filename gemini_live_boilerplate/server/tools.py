@@ -2,6 +2,7 @@
 # pylint: disable=line-too-long
 from enum import Enum
 from typing import Optional, Annotated
+import datetime
 from utils import function_tool # pylint: disable=no-name-in-module
 
 class MeetingRoom(Enum):
@@ -36,3 +37,22 @@ def cancel_meet_tool(meet_id: Annotated[str, "The id of the meeting to cancel in
         return response_message
 
     return "An error occurred while cancelling the meeting. Please make sure meeting ID is valid."
+
+@function_tool
+async def get_current_time(country: Annotated[str, "Name of the country"]) -> dict:
+    """Returns the current time in a specified country."""
+    if country.lower() == "india":
+        tz = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+    else:
+        return {
+            "status": "error",
+            "error_message": (
+                f"Sorry, I don't have timezone information for {country}."
+            ),
+        }
+
+    now = datetime.datetime.now(tz)
+    report = (
+        f'The current time in {country} is {now.strftime("%Y-%m-%d %H:%M:%S %Z%z")}'
+    )
+    return {"status": "success", "result": report}

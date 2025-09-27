@@ -1,5 +1,6 @@
 """Gemini live client handler"""
 import base64
+import asyncio
 import logging
 from typing import Callable, List
 from google import genai
@@ -61,33 +62,54 @@ class GeminiClient:
             output_audio_transcription=genai_types.AudioTranscriptionConfig(),
         )
 
-    # TODO: Add support for async functions, identify if they are coroutines and proceed
     # NOTE: Can add support for injected tool arg like langchain, for later
-    def call_function(self, fc_id: str, fc_name: str, fc_args=None):
+    async def call_function(self, fc_id: str, fc_name: str, fc_args=None):
         """Calls the functions that were defined and returns the function response"""
         func_args = fc_args if fc_args else {}
 
-        for tool in self.tools:
-            if getattr(tool, "name", None) == fc_name:
-                function_result = tool(**func_args)
-                return genai_types.FunctionResponse(
-                    id=fc_id,
-                    name=fc_name,
-                    response={
-                        "result": function_result
-                    }
-                )
-            if callable(tool) and tool.__name__ == fc_name:
-                function_result = tool(**func_args)
-                return genai_types.FunctionResponse(
-                    id=fc_id,
-                    name=fc_name,
-                    response={
-                        "result": function_result
-                    }
-                )
-        logger.error(f"Function with name '{fc_name}' is not defined.")
-        raise ValueError(f"Function with '{fc_name}' is not defined.")
+        try:
+            for tool in self.tools:
+                if getattr(tool, "name", None) == fc_name:
+                    if asyncio.iscoroutinefunction(tool):
+                        function_result = await tool(**func_args)
+                    else:
+                        function_result = tool(**func_args)
+                    return genai_types.FunctionResponse(
+                        id=fc_id,
+                        name=fc_name,
+                        response={
+                            "result": function_result
+                        }
+                    )
+                if callable(tool) and tool.__name__ == fc_name:
+                    if asyncio.iscoroutinefunction(tool):
+                        function_result = await tool(**func_args)
+                    else:
+                        function_result = tool(**func_args)
+                    return genai_types.FunctionResponse(
+                        id=fc_id,
+                        name=fc_name,
+                        response={
+                            "result": function_result
+                        }
+                    )
+            logger.error(f"Function with name '{fc_name}' is not defined.")
+            return genai_types.FunctionResponse(
+                id=fc_id,
+                name=fc_name,
+                response={
+                    "result": f"Function with `{fc_name}` is not defined."
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error occured invoking '{fc_name}' with {fc_args}. Error: {str(e)}.")
+            return genai_types.FunctionResponse(
+                id=fc_id,
+                name=fc_name,
+                response={
+                    "result": "Error occured invoking function. Unable to execute the function"
+                }
+            )
 
     def convert_audio_for_client(self, audio_data: bytes) -> str:
         """Converts audio data to base64 for client"""
