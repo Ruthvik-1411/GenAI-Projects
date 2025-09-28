@@ -4,6 +4,8 @@ import inspect
 from enum import Enum
 from typing import get_type_hints, Optional, Union, get_args, get_origin, Annotated
 
+from tool_context import ToolContext # pylint: disable=no-name-in-module
+
 class OpenAPITypes(Enum):
     """The basic data types defined by OpenAPI 3.0"""
 
@@ -140,6 +142,13 @@ class FunctionSchemaBuilder:
                 # Unpack the annotated type and its description
                 actual_type, description_annotation = get_args(py_type)
                 description = description_annotation
+            
+            # Check if the type is `ToolContext` directly or wrapped in Optional (Union)
+            is_direct_context = actual_type is ToolContext
+            is_optional_context = get_origin(actual_type) is Union and ToolContext in get_args(actual_type)
+
+            if is_direct_context or is_optional_context:
+                continue
 
             # Create the base schema from the actual type
             param_schema = self._create_schema_from_type(actual_type)
@@ -188,3 +197,11 @@ def function_tool(func):
     """
     func.tool_metadata = FunctionTool(func).to_declaration().oas_format
     return func
+
+def accepts_tool_context(func):
+    """Return (param_name, True) if a function has a ToolContext parameter, else (None, False)."""
+    type_hints = get_type_hints(func)
+    for param, annotation in type_hints.items():
+        if annotation is ToolContext:
+            return param, True
+    return None, False

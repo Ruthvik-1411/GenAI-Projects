@@ -2,12 +2,14 @@
 import base64
 import asyncio
 import logging
-from typing import Callable, List
+from typing import Callable, List, Optional
 from google import genai
 from google.genai import types as genai_types
 
 # TODO: Add more specific prompt
 from prompt import SYSTEM_PROMPT
+from tool_context import ToolContext # pylint: disable=no-name-in-module
+from utils import accepts_tool_context
 
 # TODO: Use same logger everywhere, don't import new one
 logging.basicConfig(
@@ -63,35 +65,32 @@ class GeminiClient:
         )
 
     # NOTE: Can add support for injected tool arg like langchain, for later
-    async def call_function(self, fc_id: str, fc_name: str, fc_args=None):
+    async def call_function(self,
+                            fc_id: str,
+                            fc_name: str,
+                            fc_args=None,
+                            tool_ctx: ToolContext = None):
         """Calls the functions that were defined and returns the function response"""
-        func_args = fc_args if fc_args else {}
+        func_args = fc_args.copy() if fc_args else {}
 
         try:
             for tool in self.tools:
-                if getattr(tool, "name", None) == fc_name:
+                tool_name = getattr(tool, "name", None) or getattr(tool, "__name__", None)
+                if tool_name == fc_name and callable(tool):
+                    # Check if func accepts tool context
+                    param, accepts = accepts_tool_context(tool)
+                    if accepts and tool_ctx:
+                        func_args[param] = tool_ctx
+                    
                     if asyncio.iscoroutinefunction(tool):
                         function_result = await tool(**func_args)
                     else:
                         function_result = tool(**func_args)
+
                     return genai_types.FunctionResponse(
                         id=fc_id,
                         name=fc_name,
-                        response={
-                            "result": function_result
-                        }
-                    )
-                if callable(tool) and tool.__name__ == fc_name:
-                    if asyncio.iscoroutinefunction(tool):
-                        function_result = await tool(**func_args)
-                    else:
-                        function_result = tool(**func_args)
-                    return genai_types.FunctionResponse(
-                        id=fc_id,
-                        name=fc_name,
-                        response={
-                            "result": function_result
-                        }
+                        response={"result": function_result}
                     )
             logger.error(f"Function with name '{fc_name}' is not defined.")
             return genai_types.FunctionResponse(
