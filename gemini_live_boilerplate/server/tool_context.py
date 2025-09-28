@@ -20,7 +20,7 @@ class ToolContext:
             self._state = initial_state.copy()
         else:
             self._state = {}
-    
+
     def dump_state(self) -> Dict[str, Any]:
         """
         Returns a copy of the entire state dictionary.
@@ -44,7 +44,7 @@ class ToolContext:
         """
 
         return self._state.get(key, default)
-    
+
     def update(self, **kwargs) -> Dict[str, Any]:
         """
         Updates the state with one or more key-value pairs.
@@ -54,7 +54,8 @@ class ToolContext:
             **kwargs: Arbitrary keyword arguments to add or update in the state.
 
         Returns:
-            The instance of the class to allow for method chaining (e.g., context.update(...).update(...))
+            The instance of the class to allow for method chaining 
+            (e.g., context.update(...).update(...))
 
         Usage:
             updated_data = ctx.update(key1=value1, key2=value2...)
@@ -64,14 +65,14 @@ class ToolContext:
         """
         self._state.update(kwargs)
         return self._state.copy()
-    
+
     def delete(self, key: str) -> bool:
         """
         Deletes a key-value pair from the state if it exists.
 
         Args:
             key: The key to delete from the state.
-        
+
         Returns:
             True if the key was found and deleted, False otherwise.
         """
@@ -79,7 +80,7 @@ class ToolContext:
             del self._state[key]
             return True
         return False
-    
+
     def clear(self) -> None:
         """Clears the entire state, resetting it to an empty dictionary."""
         self._state = {}

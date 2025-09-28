@@ -142,10 +142,10 @@ class FunctionSchemaBuilder:
                 # Unpack the annotated type and its description
                 actual_type, description_annotation = get_args(py_type)
                 description = description_annotation
-            
+
             # Check if the type is `ToolContext` directly or wrapped in Optional (Union)
             is_direct_context = actual_type is ToolContext
-            is_optional_context = get_origin(actual_type) is Union and ToolContext in get_args(actual_type)
+            is_optional_context = get_origin(actual_type) is Union and ToolContext in get_args(actual_type) # pylint: disable=line-too-long
 
             if is_direct_context or is_optional_context:
                 continue

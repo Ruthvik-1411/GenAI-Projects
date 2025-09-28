@@ -81,7 +81,7 @@ class GeminiClient:
                     param, accepts = accepts_tool_context(tool)
                     if accepts and tool_ctx:
                         func_args[param] = tool_ctx
-                    
+
                     if asyncio.iscoroutinefunction(tool):
                         function_result = await tool(**func_args)
                     else:

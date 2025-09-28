@@ -1,5 +1,5 @@
 """Common module for function tools"""
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long, too-many-positional-arguments
 from enum import Enum
 from typing import Optional, Annotated
 import uuid
@@ -54,8 +54,7 @@ def cancel_meet_tool(meet_id: Annotated[str, "The id of the meeting to cancel in
             # We can add more logic here, but keeping it simple for now
             print(f"Current State: {tool_ctx.dump_state()}")
             return f"Successfully cancelled meeting with ID: {meet_id}"
-        else:
-            return f"Meeting with ID: {meet_id} does not exist."
+        return f"Meeting with ID: {meet_id} does not exist."
     except Exception as e:
         print(f"Error occured when canceling a meeting. {str(e)}")
         return "An error occurred while cancelling the meeting. Please make sure meeting ID is valid."
