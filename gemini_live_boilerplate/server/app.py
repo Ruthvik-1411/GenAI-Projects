@@ -14,6 +14,7 @@ from quart import Quart, websocket
 from gemini_live_handler import GeminiClient
 from utils import function_tool
 from tools import schedule_meet_tool, cancel_meet_tool, get_current_time # pylint: disable=no-name-in-module
+from tool_context import ToolContext # pylint: disable=no-name-in-module
 
 RECORDINGS_DIR = "recordings"
 
@@ -36,10 +37,12 @@ class WebSocketHandler:
 
     def __init__(self, ws):
         self.websocket = ws
+        self.connection_id = f"conn_{int(time.time() * 1000)}"
         self.gemini = None
+        self.tool_context = ToolContext(session_id=self.connection_id)
+
         self.audio_queue = asyncio.Queue()
         self.response_queue = asyncio.Queue()
-        self.connection_id = f"conn_{int(time.time() * 1000)}"
         self._gemini_session = None
         self._gemini_client_initialized = False
         self.session_usage_metadata = None
@@ -252,7 +255,8 @@ class WebSocketHandler:
                             function_response = await self.gemini.call_function(
                                 fc_id=func_call.id,
                                 fc_name=tool_call_name,
-                                fc_args=tool_call_args
+                                fc_args=tool_call_args,
+                                tool_ctx=self.tool_context
                             )
                             await self.response_queue.put({"event": "tool_response","data": {"name": tool_call_name, "args": function_response.response}})
                             function_responses.append(function_response)
