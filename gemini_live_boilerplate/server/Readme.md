@@ -10,7 +10,7 @@ This folder contains the backend server components for a real-time, bidirectiona
 - **Asynchronous & Scalable**: Built with `Quart` and `asyncio`, the server is designed to handle multiple concurrent connections efficiently.
 - **Session Recording**: Automatically saves the full conversation (user and model audio) as a mixed MP3 file for review and analysis.
 - **Robust Connection Handling**: Gracefully manages the lifecycle of each WebSocket connection, including setup, teardown, and error handling.
-- **Async Tool Calling** <code style="color:green">**[NEW]**</code> : Tools can be defined as either synchronous or asynchronous functions. Async tools are awaited automatically by the server, making it easy to integrate non-blocking APIs and long-running operations.
+- **Async Tool Calling** (:sparkles: NEW) : Tools can be defined as either synchronous or asynchronous functions. Async tools are awaited automatically by the server, making it easy to integrate non-blocking APIs and long-running operations.
 - **Bot-Initiated Session End** <span style="color:green">**[NEW]**</span> : The model can trigger a graceful end to the call by invoking the special `end_call` tool. The server handles cleanup and recording automatically.
 - **Stateful Tool Context** <span style="color:green">**[NEW]**</span> : Each session has a `ToolContext` object shared across all tool calls. This allows tools to persist and read state (e.g., meeting IDs, user preferences, previous tool results) across multiple invocations during the same session. The state can be initialized at the beginning itself.
 
