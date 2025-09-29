@@ -10,16 +10,16 @@ This folder contains the backend server components for a real-time, bidirectiona
 - **Asynchronous & Scalable**: Built with `Quart` and `asyncio`, the server is designed to handle multiple concurrent connections efficiently.
 - **Session Recording**: Automatically saves the full conversation (user and model audio) as a mixed MP3 file for review and analysis.
 - **Robust Connection Handling**: Gracefully manages the lifecycle of each WebSocket connection, including setup, teardown, and error handling.
-- **Async Tool Calling** (:sparkles: NEW) : Tools can be defined as either synchronous or asynchronous functions. Async tools are awaited automatically by the server, making it easy to integrate non-blocking APIs and long-running operations.
-- **Bot-Initiated Session End** <span style="color:green">**[NEW]**</span> : The model can trigger a graceful end to the call by invoking the special `end_call` tool. The server handles cleanup and recording automatically.
-- **Stateful Tool Context** <span style="color:green">**[NEW]**</span> : Each session has a `ToolContext` object shared across all tool calls. This allows tools to persist and read state (e.g., meeting IDs, user preferences, previous tool results) across multiple invocations during the same session. The state can be initialized at the beginning itself.
+- **Async Tool Calling** (✨ **NEW**) : Tools can be defined as either synchronous or asynchronous functions. Async tools are awaited automatically by the server, making it easy to integrate non-blocking APIs and long-running operations.
+- **Bot-Initiated Session End** (✨ **NEW**) : The model can trigger a graceful end to the call by invoking the special `end_call` tool. The server handles cleanup and recording automatically.
+- **Stateful Tool Context** (✨ **NEW**) : Each session has a `ToolContext` object shared across all tool calls. This allows tools to persist and read state (e.g., meeting IDs, user preferences, previous tool results) across multiple invocations during the same session. The state can be initialized at the beginning itself.
 
 ## High Level Architecture
 The server is designed around an asynchronous, event-driven architecture to manage real-time communication efficiently. For each client that connects, a dedicated WebSocketHandler instance is created. This handler orchestrates three concurrent tasks using `asyncio`:
 1. **Receiver (_receive_from_client)**: Listens for incoming messages from the client (e.g., audio chunks, session control events). Audio data is placed into an audio_queue.
 2. **Processor (_process_gemini_stream)**: Pulls audio data from the audio_queue and streams it to the Gemini Live API. It then listens for responses from Gemini (e.g., transcripts, audio chunks, tool calls) and places the processed results into a response_queue.
 3. **Sender (_send_to_client)**: Pulls messages from the response_queue and sends them back to the client over the WebSocket connection.
-4. **Tool Context & Async Tools** <span style="color:green">**[NEW]**</span> : When the model invokes tool calls, the server can now handle them asynchronously. A session-specific `ToolContext` object is passed to each tool, so they can share state across calls. The model can also call a special `end_call` tool to terminate the session.
+4. **Tool Context & Async Tools** (✨ **NEW**) : When the model invokes tool calls, the server can now handle them asynchronously. A session-specific `ToolContext` object is passed to each tool, so they can share state across calls. The model can also call a special `end_call` tool to terminate the session.
 
 This **separation of concerns** using queues ensures that the components are decoupled. The I/O-bound operations (receiving from the client, communicating with Gemini, sending to the client) do not block each other, leading to a highly responsive system.
 
@@ -169,7 +169,7 @@ To interact with the server, you will need a WebSocket client. You can find the 
     ```
 That's it! The server will automatically generate the schema and make the tool available to the LLM.
 
-### Adding an Async Tool with State Management <span style="color:green">**[NEW]**</span>
+### Adding an Async Tool with State Management (✨ **NEW**)
 ```python
 from typing import Annotated
 from utils import function_tool, ToolContext

@@ -16,9 +16,9 @@ The application is split into two main components:
 -   **High-Performance Asynchronous Backend**: Built with Python, Quart, and `asyncio` to efficiently handle multiple concurrent WebSocket connections.
 -   **Responsive Web-Based UI**: A lightweight, modern frontend built with standard web technologies for maximum compatibility and performance.
 -   **Session Recording**: Automatically saves the full conversation (user and model audio) as a mixed MP3 file for analysis.
--   **Async Tool Calling**<span style="color:green">**[NEW]**</span>: Tools (functions) can be executed asynchronously, allowing non-blocking operations such as API calls or long-running tasks.
--   **Bot-Initiated Session End**<span style="color:green">**[NEW]**</span>: The model can proactively end a session by invoking the `end_call` tool, useful for scenarios where the conversation is complete.
--   **Stateful Tool Context**<span style="color:green">**[NEW]**</span>: Tools now share state through `ToolContext`, enabling memory and continuity across multiple tool calls within the same session making use of any startup session info.
+-   **Async Tool Calling** (✨ **NEW**): Tools (functions) can be executed asynchronously, allowing non-blocking operations such as API calls or long-running tasks.
+-   **Bot-Initiated Session End** (✨ **NEW**): The model can proactively end a session by invoking the `end_call` tool, useful for scenarios where the conversation is complete.
+-   **Stateful Tool Context** (✨ **NEW**): Tools now share state through `ToolContext`, enabling memory and continuity across multiple tool calls within the same session making use of any startup session info.
 
 ## High-Level Architecture
 
