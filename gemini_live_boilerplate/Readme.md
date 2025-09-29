@@ -16,6 +16,9 @@ The application is split into two main components:
 -   **High-Performance Asynchronous Backend**: Built with Python, Quart, and `asyncio` to efficiently handle multiple concurrent WebSocket connections.
 -   **Responsive Web-Based UI**: A lightweight, modern frontend built with standard web technologies for maximum compatibility and performance.
 -   **Session Recording**: Automatically saves the full conversation (user and model audio) as a mixed MP3 file for analysis.
+-   **Async Tool Calling** (✨ **NEW**): Tools (functions) can be executed asynchronously, allowing non-blocking operations such as API calls or long-running tasks.
+-   **Bot-Initiated Session End** (✨ **NEW**): The model can proactively end a session by invoking the `end_call` tool, useful for scenarios where the conversation is complete.
+-   **Stateful Tool Context** (✨ **NEW**): Tools now share state through `ToolContext`, enabling memory and continuity across multiple tool calls within the same session making use of any startup session info.
 
 ## High-Level Architecture
 
@@ -26,6 +29,7 @@ The system operates on a classic client-server model connected via WebSockets. T
 3.  Gemini processes the audio in real-time, generating transcripts, audio responses, and requests to call tools.
 4.  The **Server** streams the AI's audio response back to the **Client**, which plays it instantly. It also handles tool calls by executing local Python functions and sending the results back to Gemini.
 5.  All events (transcripts, tool calls, status changes) are sent as JSON messages, allowing the **Client** to update the UI dynamically.
+6.  Tool calls are executed asynchronously, and results can be shared across multiple invocations using a session-specific `ToolContext`. The bot can also end the call gracefully if needed.
 
 **High Level Architecture with Client and Sever Interaction**:
 <img src="./assets/gemini_live_overall.png">
@@ -124,6 +128,7 @@ You should see the user interface. You can now start a session and begin convers
 │   ├── gemini_live_handler.py
 │   ├── prompt.py
 │   ├── requirements.txt
+│   ├── tool_context.py
 │   ├── tools.py
 │   ├── utils.py
 │   └── README.md    # <-- Detailed server documentation

@@ -6,16 +6,20 @@ This folder contains the backend server components for a real-time, bidirectiona
 - **Real-Time Bidirectional Audio**: Streams audio to and from the client using WebSockets for a live, conversational feel.
 - **Google Gemini Live API Integration**: Leverages the power of Google's latest multimodal live API for advanced understanding and response generation.
 - **Intelligent Function Calling**: The agent can execute predefined Python functions (tools) to perform actions like scheduling meetings or querying a database, interacting with other systems.
-- **Dynamic Tool Schema Generation**: Automatically generates OpenAPI-compliant schemas from standard Python functions, making it easy to add new tools.
+- **Dynamic Tool Schema Generation**: Automatically generates OpenAPI-compliant schemas from standard Python functions, making it easy to add new tools. No need to write manually write function declarations now!!!
 - **Asynchronous & Scalable**: Built with `Quart` and `asyncio`, the server is designed to handle multiple concurrent connections efficiently.
 - **Session Recording**: Automatically saves the full conversation (user and model audio) as a mixed MP3 file for review and analysis.
 - **Robust Connection Handling**: Gracefully manages the lifecycle of each WebSocket connection, including setup, teardown, and error handling.
+- **Async Tool Calling** (✨ **NEW**) : Tools can be defined as either synchronous or asynchronous functions. Async tools are awaited automatically by the server, making it easy to integrate non-blocking APIs and long-running operations.
+- **Bot-Initiated Session End** (✨ **NEW**) : The model can trigger a graceful end to the call by invoking the special `end_call` tool. The server handles cleanup and recording automatically.
+- **Stateful Tool Context** (✨ **NEW**) : Each session has a `ToolContext` object shared across all tool calls. This allows tools to persist and read state (e.g., meeting IDs, user preferences, previous tool results) across multiple invocations during the same session. The state can be initialized at the beginning itself.
 
 ## High Level Architecture
 The server is designed around an asynchronous, event-driven architecture to manage real-time communication efficiently. For each client that connects, a dedicated WebSocketHandler instance is created. This handler orchestrates three concurrent tasks using `asyncio`:
 1. **Receiver (_receive_from_client)**: Listens for incoming messages from the client (e.g., audio chunks, session control events). Audio data is placed into an audio_queue.
 2. **Processor (_process_gemini_stream)**: Pulls audio data from the audio_queue and streams it to the Gemini Live API. It then listens for responses from Gemini (e.g., transcripts, audio chunks, tool calls) and places the processed results into a response_queue.
 3. **Sender (_send_to_client)**: Pulls messages from the response_queue and sends them back to the client over the WebSocket connection.
+4. **Tool Context & Async Tools** (✨ **NEW**) : When the model invokes tool calls, the server can now handle them asynchronously. A session-specific `ToolContext` object is passed to each tool, so they can share state across calls. The model can also call a special `end_call` tool to terminate the session.
 
 This **separation of concerns** using queues ensures that the components are decoupled. The I/O-bound operations (receiving from the client, communicating with Gemini, sending to the client) do not block each other, leading to a highly responsive system.
 
@@ -57,7 +61,7 @@ This is the main entry point of the application. It uses **Quart**, an asynchron
 ### Gemini Client Wrapper (gemini_live_handler.py)
 This module abstracts away the complexities of configuring and interacting with the Google GenAI SDK. It has two main components:
 - **_setup_config()**: This is where the Gemini session is configured. You can easily change the language_code, voice_name, system_instruction (the agent's persona and rules), and the tools the model can use.
-- **call_function()**: This method acts as a dispatcher. When the Gemini API requests a tool call, this function finds the corresponding Python function in the self.tools list by its name and executes it with the provided arguments. It then formats the result into a FunctionResponse object that the API understands.
+- **call_function()**: This method acts as a dispatcher. When the Gemini API requests a tool call, this function finds the corresponding Python function in the `self.tools` list by its name and executes it with the provided arguments. If the function accepts a `ToolContext` object, the shared `ToolContext` instance for that session is also appended to the arguments when executing the respective function. It then formats the result into a FunctionResponse object that the API understands.
 
 ### Function Calling Handler (tools.py & utils.py)
 These are the modules that allows tool execution and abstracts a lot of things making it easier for developers to customize things and add new tools as required.
@@ -69,6 +73,9 @@ These are the modules that allows tool execution and abstracts a lot of things m
     - `FunctionSchemaBuilder`: Uses Python's built-in inspect module to analyze a function's signature, parameters, default values, and type hints. It even unpacks Annotated types and Enum classes to build a rich schema.
     - `@function_tool Decorator`: This is a simple but elegant decorator. When you apply it to a function in tools.py, it runs the FunctionSchemaBuilder, generates the full JSON schema for that function, and attaches it to the function object itself as a `tool_metadata` attribute.
     - This automation is a massive time-saver and reduces errors. Instead of manually writing complex JSON schemas for every function, you just write a normal Python function with clear type hints and docstrings. The utility handles the rest, ensuring the LLM gets a perfect definition of the tool every time.
+- Tools can now be written as `async def` functions. The dispatcher in `gemini_live_handler.py` will automatically await them if needed.
+- Tools can receive a `ToolContext` object, which can be used to store and retrieve shared session state. See [tool_context.py](tool_context.py) for implementation details around state management. 
+- A special tool named `end_call` can be used by the model to gracefully end the WebSocket session.
 
 ## Development Guide
 
@@ -161,6 +168,28 @@ To interact with the server, you will need a WebSocket client. You can find the 
             # ...
     ```
 That's it! The server will automatically generate the schema and make the tool available to the LLM.
+
+### Adding an Async Tool with State Management (✨ **NEW**)
+```python
+from typing import Annotated
+from utils import function_tool, ToolContext
+import httpx
+
+# FYI: ctx param here is ignored when creating func declaration as it is of type `ToolContext`
+@function_tool
+async def get_stock_price( # <--- Define the async function
+    ctx: ToolContext, # <--- Use the shared state as any variable
+    ticker: Annotated[str, "Stock ticker symbol, e.g., AAPL"]
+):
+    """Fetches the current stock price for a given ticker."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"https://api.example.com/stocks/{ticker}")
+        price = response.json()["price"]
+    ctx.update(last_stock={ticker: price}) # <--- Manage the state as needed, read, update and clear...
+    return {"ticker": ticker, "price": price}
+
+# Import the function and add to the list when initializing GeminiClient as shown in previous example
+```
 
 ### Changing the System Prompt or Voice Config
 
